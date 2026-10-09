@@ -207,8 +207,13 @@ final class MonitorModel {
     }
 
     func disconnect() {
+        // Queued while the client is still connected; the connection task waits for them before closing it.
+        releaseArrow()
+        releaseFocus()
+        cancelDrive()
         task?.cancel()
         task = nil
+        connectedClient = nil
         calibration = nil // the mount may be switched off or moved before the next connection
         offerHome = false
         offerReturnHome = false
@@ -440,11 +445,12 @@ final class MonitorModel {
         }
     }
 
-    /// Lets go of any held arrow or focus button and returns once every queued press and release has gone out,
-    /// so quitting can't leave a hold running or skip a stop the user already asked for.
+    /// Lets go of any held arrow or focus button, cancels a Go to or Return to home, and returns once every queued
+    /// press and release has gone out, so quitting can't leave a move running or skip a stop the user already asked for.
     func releaseControls() async {
         releaseArrow()
         releaseFocus()
+        cancelDrive()
         await controlChain?.value
     }
 
@@ -454,6 +460,7 @@ final class MonitorModel {
         switch ending {
         case .timeLimit: controlNotice = "Focus stopped after \(Self.focusHoldSeconds) seconds. Release and press again to keep going."
         case .stopped(let reason): controlNotice = "Focus stopped: \(reason)"
+        case .stopFailed(let error): lastError = "Focus stop may not have reached the motor: \(error)"
         case .arrived: break
         }
     }
@@ -464,6 +471,7 @@ final class MonitorModel {
         switch ending {
         case .timeLimit: controlNotice = "Stopped after \(Self.holdSeconds) seconds. Release and press again to keep moving."
         case .stopped(let reason): controlNotice = "Stopped: \(reason)"
+        case .stopFailed(let error): lastError = "Stop may not have reached the mount: \(error)"
         case .arrived: break
         }
     }
@@ -754,6 +762,8 @@ final class MonitorModel {
             }
         case .stopped(let reason):
             controlNotice = "\(drive.destination == .home ? "Return to home" : "Go to \(drive.destination.name)") stopped: \(reason)"
+        case .stopFailed(let error):
+            lastError = "Stop may not have reached the mount: \(error)"
         case .timeLimit:
             break
         }
@@ -905,6 +915,8 @@ final class MonitorModel {
             do {
                 try await client.connect()
                 await client.setCalibration(calibration)
+                // Connecting doesn't notice cancellation; a Disconnect (and maybe a new Connect) may have come since.
+                try Task.checkCancellation()
                 connectedClient = client
                 heldMove = HeldMove(client: client)
                 phase = .connected
@@ -943,14 +955,19 @@ final class MonitorModel {
                     if ConnectionSettings.isPermanent(error) { giveUp = true }
                 }
             }
-            connectedClient = nil
-            movementEnabled = false
-            heldMove = nil
-            activeMove = nil
-            activeFocus = nil
-            driving = nil
-            planAfter = nil
-            arrivedAt = nil
+            // After a Disconnect, `disconnect()` has already reset all this, and it may belong to a newer connection.
+            if !Task.isCancelled {
+                connectedClient = nil
+                movementEnabled = false
+                heldMove = nil
+                activeMove = nil
+                activeFocus = nil
+                driving = nil
+                planAfter = nil
+                arrivedAt = nil
+            }
+            // Let queued releases and stops reach the mount before the connection closes.
+            await controlChain?.value
             await client.disconnect()
             guard !Task.isCancelled else { break }
             if giveUp {

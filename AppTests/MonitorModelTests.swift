@@ -191,6 +191,74 @@ struct MonitorModelTests {
         #expect(model.log.contains { $0.text == "Back at the home position." })
     }
 
+    /// Calibrated, with Return to home set going toward a home 40° away, and its route planned (so steps are going out).
+    private func driveHomeUnderWay() async throws -> Rig {
+        let rig = try await Rig(home: AxisCalibration(azimuthOffset: -40, altitudeOffset: 0))
+        let model = rig.model
+        model.movementEnabled = true
+        model.verticalEnabled = true
+        model.offerHome = false
+        model.calibrateLevel()
+        try await Rig.waitUntil { model.calibration != nil }
+        model.calibrateNorth()
+        try await Rig.waitUntil { model.calibration?.azimuthOffset != 0 }
+        _ = try await rig.freshStatus()
+        model.returnHome()
+        try await rig.waitUntil { model.driving?.target != nil } failure: { [model] in "not planned: \(model.lastError ?? "no error")" }
+        return rig
+    }
+
+    private func stopWasSent(_ model: MonitorModel) -> Bool {
+        model.log.contains { $0.direction == .sent && $0.text.contains("stop →") }
+    }
+
+    @Test func disconnectingStopsAReturnToHome() async throws {
+        let rig = try await driveHomeUnderWay()
+        defer { rig.tearDown() }
+        let model = rig.model
+
+        model.disconnect()
+        try await rig.waitUntil(timeout: .seconds(5)) { stopWasSent(model) } failure: { "no stop sent" }
+        #expect(model.driving == nil)
+    }
+
+    @Test func quittingStopsAReturnToHome() async throws {
+        let rig = try await driveHomeUnderWay()
+        defer { rig.tearDown() }
+        let model = rig.model
+
+        await model.releaseControls()
+        try await rig.waitUntil(timeout: .seconds(5)) { stopWasSent(model) } failure: { "no stop sent" }
+        #expect(model.driving == nil)
+    }
+
+    /// An abandoned connection attempt that only gives up after a new connection is made mustn't tear the new one
+    /// down (that left Stop doing nothing).
+    @Test func aConnectAttemptAbandonedByDisconnectLeavesTheNextConnectionAlone() async throws {
+        let rig = try await Rig()
+        defer { rig.tearDown() }
+        let model = rig.model
+        let simulatorPort = model.wifiPort
+
+        model.disconnect()
+        model.wifiHost = "192.0.2.1" // TEST-NET-1: never answers, so connecting hangs until its 5 s timeout
+        model.connect()
+        try await Task.sleep(for: .milliseconds(300))
+        model.disconnect()
+        model.wifiHost = "127.0.0.1"
+        model.wifiPort = simulatorPort
+        model.connect()
+        try await rig.waitUntil { model.phase == .connected }
+        model.movementEnabled = true
+
+        try await Task.sleep(for: .seconds(6)) // past the abandoned attempt's timeout
+        #expect(model.movementEnabled)
+        model.stopTelescope()
+        try await rig.waitUntil(timeout: .seconds(5)) {
+            model.log.contains { $0.text == "Stop acknowledged by the mount." }
+        } failure: { "Stop didn't reach the mount" }
+    }
+
     @Test func goToRefusesAStarBelowTheHorizon() async throws {
         let rig = try await Rig()
         defer { rig.tearDown() }
