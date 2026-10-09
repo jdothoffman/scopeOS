@@ -108,6 +108,19 @@ struct DriveTests {
         #expect(sent.swap([]).filter { $0.contains("stop →") }.isEmpty, "the step had finished, so there was nothing to stop")
     }
 
+    @Test func aStopThatFailsIsReportedNotPassedOffAsStopped() async throws {
+        let (server, client, _) = try await fastMount(secondsPerDegree: 0.3)
+        let ending = Box<HeldMove.Ending?>(nil)
+        let held = HeldMove(client: client)
+
+        try await held.begin(.azimuth, positive: true, onEnded: { _ = ending.swap($0) })
+        server.stop() // the link drops mid-hold, so the stop can't go out
+        let ended = try await waitFor(ending)
+        await client.disconnect()
+
+        guard case .stopFailed = ended else { Issue.record("ended \(String(describing: ended))"); return }
+    }
+
     @Test func goToArrivesOneAxisAfterTheOther() async throws {
         let (server, client, sent) = try await fastMount()
         defer { server.stop() }

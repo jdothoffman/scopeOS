@@ -23,6 +23,9 @@ public actor HeldMove {
         case arrived
         /// `mayContinue` declined the next step, or a step was refused or failed. Stopped if a step was under way.
         case stopped(String)
+        /// The move ended by itself and was meant to be stopped, but the stop failed: the step under way may still
+        /// run to its end. Carries the stop's error.
+        case stopFailed(String)
     }
 
     /// One axis of a `goTo`: drive `axis` to the sky angle `target`, for azimuth going the `positive` way round.
@@ -137,7 +140,11 @@ public actor HeldMove {
         if let timeLimit {
             Task {
                 try? await Task.sleep(for: timeLimit)
-                if (try? await self.finish(id)) == true { onEnded(.timeLimit) }
+                do {
+                    if try await self.finish(id) { onEnded(.timeLimit) }
+                } catch {
+                    onEnded(.stopFailed(error.localizedDescription))
+                }
             }
         }
 
@@ -211,7 +218,14 @@ public actor HeldMove {
     private func ended(_ id: UUID, _ ending: Ending, stop: Bool, _ onEnded: @Sendable (Ending) -> Void) async {
         guard let drive = current, drive.id == id else { return }
         current = nil
-        if stop { try? await drive.stop() }
+        if stop {
+            do {
+                try await drive.stop()
+            } catch {
+                onEnded(.stopFailed(error.localizedDescription))
+                return
+            }
+        }
         onEnded(ending)
     }
 
