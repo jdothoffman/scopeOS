@@ -1,0 +1,112 @@
+name: ScopeOS
+options:
+  bundleIdPrefix: com.jdot
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+packages:
+  ScopeKit:
+    path: Packages/ScopeKit
+
+targets:
+  ScopeOS:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+    dependencies:
+      - package: ScopeKit
+        product: ScopeKit
+      - package: ScopeKit
+        product: NexStarSimulator
+      - package: ScopeKit
+        product: ScopeCapture
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: scopeOS
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.utilities
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSLocalNetworkUsageDescription: scopeOS connects to your telescope's WiFi module to read where it is pointing and to move it.
+        NSCameraUsageDescription: scopeOS shows and records the telescope camera's picture.
+        NSLocationUsageDescription: scopeOS uses your location to work out where the Sun is, how dark the sky is, and local sidereal time.
+        NSLocationWhenInUseUsageDescription: scopeOS uses your location to work out where the Sun is, how dark the sky is, and local sidereal time.
+        NSHumanReadableCopyright: Celestron telescope monitor.
+    entitlements:
+      path: App/ScopeOS.entitlements
+      properties:
+        com.apple.security.personal-information.location: true
+        com.apple.security.device.camera: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jdot.ScopeOS
+        PRODUCT_NAME: scopeOS
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "6.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        COMBINE_HIDPI_IMAGES: YES
+        # Apple Intelligence's on-device model is macOS 26 only; weak linking lets the app still open on macOS 15.
+        OTHER_LDFLAGS: "$(inherited) -weak_framework FoundationModels"
+
+  # The app's own logic (MonitorModel and friends) against the simulator. Compiles the app's sources directly,
+  # without launching the app, so tests never touch the real settings or the telescope.
+  ScopeOSTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - ScopeOSApp.swift
+          - Assets.xcassets
+          - ScopeOS.entitlements
+      - path: AppTests
+    dependencies:
+      - package: ScopeKit
+        product: ScopeKit
+      - package: ScopeKit
+        product: NexStarSimulator
+      - package: ScopeKit
+        product: ScopeCapture
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jdot.ScopeOSTests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+
+schemes:
+  # Debug: developer tools (simulator, DEBUG badge, movement enable switches).
+  ScopeOS:
+    build:
+      targets:
+        ScopeOS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ScopeOSTests
+    archive:
+      config: Release
+  # Release: no simulator, movement switches hidden and on, optimised build.
+  ScopeOS Release:
+    build:
+      targets:
+        ScopeOS: all
+    run:
+      config: Release
+    archive:
+      config: Release

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Feature switches built into scopeOS. Set one to false to leave that feature out of the build entirely;
+	a feature left on here can still be turned off by whoever uses the app (Setup tab).
+
+	OnDeviceAI: Apple Intelligence's on-device model writes tonight's suggestions on the Sky tab. It runs on the Mac
+	and sends nothing anywhere. It never moves the telescope; a suggestion only selects a target on the map.
+-->
+<plist version="1.0">
+<dict>
+	<key>OnDeviceAI</key>
+	<true/>
+</dict>
+</plist>

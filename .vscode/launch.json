@@ -1,0 +1,64 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Debug scopesim (Packages/ScopeKit)",
+            "target": "scopesim",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug scopesim (Packages/ScopeKit)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Release scopesim (Packages/ScopeKit)",
+            "target": "scopesim",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release scopesim (Packages/ScopeKit)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Debug scopeos-cli (Packages/ScopeKit)",
+            "target": "scopeos-cli",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug scopeos-cli (Packages/ScopeKit)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Release scopeos-cli (Packages/ScopeKit)",
+            "target": "scopeos-cli",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release scopeos-cli (Packages/ScopeKit)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Debug scopecap (Packages/ScopeKit)",
+            "target": "scopecap",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug scopecap (Packages/ScopeKit)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:scopeOS}/Packages/ScopeKit",
+            "name": "Release scopecap (Packages/ScopeKit)",
+            "target": "scopecap",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release scopecap (Packages/ScopeKit)"
+        }
+    ]
+}
