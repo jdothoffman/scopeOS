@@ -161,7 +161,8 @@ public final class CaptureEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             frameTimes.removeAll()
             stats.framesPerSecond = 0
             let timer = DispatchSource.makeTimerSource(queue: videoQueue)
-            timer.schedule(deadline: .now(), repeating: 1 / format.maxFrameRate)
+            // A camera's frames come steadily; without a tight leeway the system may bunch the timer's firings up.
+            timer.schedule(deadline: .now(), repeating: 1 / format.maxFrameRate, leeway: .milliseconds(2))
             timer.setEventHandler { [weak self] in self?.simulateFrame() }
             simulation = (camera, timer, pool)
             timer.resume()
