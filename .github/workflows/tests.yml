@@ -32,6 +32,17 @@ jobs:
         working-directory: Packages/ScopeKit
         run: swift test
 
+      - name: ScopeKit tests (iOS simulator)
+        working-directory: Packages/ScopeKit
+        run: |
+          # Whichever iPhone simulator this Xcode ships with.
+          device=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          xcodebuild test \
+            -scheme ScopeKit-Package \
+            -destination "id=$device" \
+            -derivedDataPath ../../build.noindex/ios
+
       - name: App tests
         run: |
           xcodebuild test \

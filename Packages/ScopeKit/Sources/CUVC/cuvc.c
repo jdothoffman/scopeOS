@@ -1,5 +1,9 @@
 #include "cuvc.h"
 
+#include <TargetConditionals.h>
+
+#if TARGET_OS_OSX
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOCFPlugIn.h>
 #include <IOKit/IOKitLib.h>
@@ -154,3 +158,15 @@ int32_t cuvc_request(cuvc_device *device, uint8_t request, uint8_t unit, uint8_t
     }
     return result;
 }
+
+#else
+
+// iOS and iPadOS have no IOKit, so there are no camera controls: every camera opens as one without them.
+
+cuvc_device *cuvc_open(uint16_t vendor, uint16_t product, uint32_t location) { return NULL; }
+void cuvc_close(cuvc_device *device) {}
+uint8_t cuvc_camera_terminal(const cuvc_device *device) { return 0; }
+uint8_t cuvc_processing_unit(const cuvc_device *device) { return 0; }
+int32_t cuvc_request(cuvc_device *device, uint8_t request, uint8_t unit, uint8_t selector, void *data, uint16_t length) { return -1; }
+
+#endif
