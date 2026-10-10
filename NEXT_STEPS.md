@@ -27,6 +27,15 @@ These need the telescope, and they decide whether some code needs adjusting. Use
 - [ ] **Focus moves.** A ±10 step should move the position by 10. If nothing happens, check the GoTo command (`0x02`) in the log.
 - [ ] **Direction.** "+" means higher position numbers; note whether that is focusing in or out.
 
+**iPhone and iPad** (so far only in the iOS Simulator)
+- [ ] **Find** on the iPhone's WiFi (home or Starlink network) finds the module; connecting on the module's own network at 1.2.3.4.
+- [ ] **Holds by touch.** Holding an arrow moves until release. Pull down Control Center mid-hold: the move must stop. Let the finger drift on the arrow: if the page scrolls instead, the move stops (safe, but say if it's annoying).
+- [ ] **Leaving mid-move.** Press Home during a Return to home: it stops, the log shows "Paused", and coming back reconnects with the calibration still applied and doesn't ask about the home marks again.
+- [ ] **Screen stays on** while connected; locks normally after Disconnect.
+- [ ] **STOP bar** reachable on every tab, in portrait and landscape, on iPhone and iPad.
+- [ ] **Sky map** panning and pinching inside the scrolling page.
+- [ ] **GPS location** on the telescope's WiFi with no internet.
+
 **Camera (SVBONY SV205)**
 - [ ] **First recording from the app.** Record 30 s at YUVS 640×480, then check the SER file opens in a stacker and the notes `.txt` looks right.
 - [ ] **Crop or shrink?** Compare the view at 3264×2160 and 1280×720 on a distant daytime target. If the smaller mode shows the same view, only less sharp, record planets at full resolution instead.
