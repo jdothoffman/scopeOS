@@ -38,6 +38,15 @@ struct ScopeOSApp: App {
                 .onChange(of: model.isRunning, initial: true) { _, running in
                     UIApplication.shared.isIdleTimerDisabled = running
                 }
+                #if DEBUG
+                // For trying layouts in the iOS Simulator, where nothing can be tapped from a script:
+                // `xcrun simctl launch booted com.jdot.ScopeOS -connect YES -startSimulator YES` connects with the
+                // saved settings, then starts the simulated mount (the connection retries until it's up).
+                .task {
+                    if UserDefaults.standard.bool(forKey: "connect") { model.connect() }
+                    if UserDefaults.standard.bool(forKey: "startSimulator") { model.startSimulator() }
+                }
+                #endif
         }
         .commands {
             // An iPad with a keyboard gets the same shortcuts as the Mac.

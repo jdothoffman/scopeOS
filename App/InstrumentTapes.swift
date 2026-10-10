@@ -38,6 +38,8 @@ private struct AzimuthScale: View, @preconcurrency Animatable {
         let index = moving ? Theme.warning : Theme.accent
         let scale = Theme.scale, accent = Theme.accent, secondary = Theme.textSecondary
         Canvas { context, size in
+            // At least 3.2 points a degree, so the labels never run together: fewer degrees on a narrow tape.
+            let span = min(span, size.width / 3.2)
             let perDegree = size.width / span
             let mid = size.width / 2
             var minor = Path(), major = Path()

@@ -32,6 +32,7 @@
 		65376CD1BECED1EB719CF7D4 /* TonightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */; };
 		654D6CFC7A7DD5302CBD5C61 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 677F48065488F4B191BF711C /* ScopeKit */; };
 		6B2BA8CC923D581AD2B975F1 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 95FA58D34CACD67AE9785126 /* ScopeKit */; };
+		6BB534262522A95DF4F87219 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C78AE8960937C0C045B2C3E /* Layout.swift */; };
 		7133AD04279BA61B9863DAFB /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 720036D9D1CAF4C243CF0687 /* CameraPreview.swift */; };
 		71EC58F48DDA5757E5D07807 /* SnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */; };
 		75FBB5354DBE0EF5D08A18B2 /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
@@ -45,6 +46,7 @@
 		95230455AC492CE27B412330 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873763520B45A6F2D418A8A /* CameraModel.swift */; };
 		9640712D83EC1FE22C4551F1 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8557BBCC102D40F97DE2A3B6 /* Platform.swift */; };
 		A194A64DA923D47CA2F4FCC5 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */; };
+		A21656F848679EA5CEF60F89 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C78AE8960937C0C045B2C3E /* Layout.swift */; };
 		A68DC5968ACDDDE2E00BEC68 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
 		AC1A60C6F8A86D0DE26787B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
 		AFFB6C600AAEBBC3DBFF6EC0 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
@@ -78,6 +80,7 @@
 		F094269050D4F17C1A59B4AA /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
 		F1120607C2252B55582C80C8 /* TonightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */; };
 		F3248B78130529DC2A9EE77F /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873763520B45A6F2D418A8A /* CameraModel.swift */; };
+		F7954AAE3C4E45CDA927D2CB /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C78AE8960937C0C045B2C3E /* Layout.swift */; };
 		F86453C179EEBC1A41C9A080 /* TonightPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */; };
 /* End PBXBuildFile section */
 
@@ -97,6 +100,7 @@
 		55E40567E709BABAA76D964E /* ScopeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScopeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		565860273E3FEF44D5F82627 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
+		6C78AE8960937C0C045B2C3E /* Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Layout.swift; sourceTree = "<group>"; };
 		720036D9D1CAF4C243CF0687 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		78E192FA5AF1210039E82C12 /* FocusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCard.swift; sourceTree = "<group>"; };
 		82A9D7A956D9399A2F78DF40 /* SkyMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyMap.swift; sourceTree = "<group>"; };
@@ -190,6 +194,7 @@
 				079592A93F2302B3A77C1A20 /* Features.plist */,
 				78E192FA5AF1210039E82C12 /* FocusCard.swift */,
 				12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */,
+				6C78AE8960937C0C045B2C3E /* Layout.swift */,
 				C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */,
 				C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */,
 				8557BBCC102D40F97DE2A3B6 /* Platform.swift */,
@@ -394,6 +399,7 @@
 				E80A5C72788153B93474E0E2 /* ContentView.swift in Sources */,
 				B5520ED81E7D82FBEE4C4673 /* FocusCard.swift in Sources */,
 				B536BA3CA91BADCAA3081A16 /* InstrumentTapes.swift in Sources */,
+				A21656F848679EA5CEF60F89 /* Layout.swift in Sources */,
 				B3CEFB3CD2737738CBDF7EAB /* LocationModel.swift in Sources */,
 				F094269050D4F17C1A59B4AA /* MonitorModel.swift in Sources */,
 				C7472D8809E2035F770D3E30 /* MonitorModelTests.swift in Sources */,
@@ -423,6 +429,7 @@
 				AC1A60C6F8A86D0DE26787B3 /* ContentView.swift in Sources */,
 				5C7EB2FB2B223D6AC1512906 /* FocusCard.swift in Sources */,
 				E43126B818E8F8C51323E69F /* InstrumentTapes.swift in Sources */,
+				F7954AAE3C4E45CDA927D2CB /* Layout.swift in Sources */,
 				BE99E3D486C471F961F8FA52 /* LocationModel.swift in Sources */,
 				4155614AD3B3DE4F44242BAF /* MonitorModel.swift in Sources */,
 				0337B530741E4DCA55044894 /* Platform.swift in Sources */,
@@ -448,6 +455,7 @@
 				2606C0F261832E173B512903 /* ContentView.swift in Sources */,
 				EC3B2B56AB1EA64821790A04 /* FocusCard.swift in Sources */,
 				C5996A2BDBCD93F2E4BBD684 /* InstrumentTapes.swift in Sources */,
+				6BB534262522A95DF4F87219 /* Layout.swift in Sources */,
 				3CE6A262AAE94A576AE087D7 /* LocationModel.swift in Sources */,
 				1097F61BAD7590B6D92925E8 /* MonitorModel.swift in Sources */,
 				9640712D83EC1FE22C4551F1 /* Platform.swift in Sources */,
