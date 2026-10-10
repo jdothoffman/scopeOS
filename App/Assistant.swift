@@ -28,7 +28,7 @@ struct TonightSuggestion: Equatable {
     let reason: String
 }
 
-/// Apple Intelligence's on-device model, used only to rank and describe tonight's targets. It runs on the Mac and sends
+/// Apple Intelligence's on-device model, used only to rank and describe tonight's targets. It runs on the device and sends
 /// nothing anywhere. It never moves the telescope: it can only name targets the app already worked out, and picking one
 /// just selects it on the map, so Go to's own checks and confirmation still apply.
 @MainActor
@@ -66,7 +66,7 @@ final class Assistant {
             switch SystemLanguageModel.default.availability {
             case .available: return .ready
             case .unavailable(.appleIntelligenceNotEnabled): return .unavailable("Apple Intelligence is off in System Settings.")
-            case .unavailable(.deviceNotEligible): return .unavailable("This Mac can't run Apple Intelligence.")
+            case .unavailable(.deviceNotEligible): return .unavailable("This \(Platform.deviceName) can't run Apple Intelligence.")
             case .unavailable(.modelNotReady): return .unavailable("Apple Intelligence is still downloading its model. Try again later.")
             case .unavailable: return .unavailable("Apple Intelligence isn't available right now.")
             }

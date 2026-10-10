@@ -54,3 +54,12 @@ jobs:
             -scheme ScopeOS \
             -destination 'platform=macOS' \
             -derivedDataPath build.noindex
+
+      - name: iOS app builds
+        run: |
+          xcodebuild build \
+            -project ScopeOS.xcodeproj \
+            -scheme "ScopeOS iOS" \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build.noindex/ios \
+            CODE_SIGNING_ALLOWED=NO

@@ -11,6 +11,15 @@ final class MonitorModel {
 
         var id: Self { self }
 
+        /// The connections this device can make: iOS has no serial ports, so no USB hand controller.
+        static var available: [Kind] {
+            #if os(macOS)
+            allCases
+            #else
+            [.wifiModule, .networkHandController]
+            #endif
+        }
+
         var title: String {
             switch self {
             case .wifiModule: "WiFi module"
@@ -168,7 +177,7 @@ final class MonitorModel {
         self.location = location
         self.defaults = defaults
         logFile = TrafficLogFile(folder: logFolder)
-        kind = Kind(rawValue: defaults.string(forKey: "kind") ?? "") ?? .wifiModule
+        kind = Kind(rawValue: defaults.string(forKey: "kind") ?? "").flatMap { Kind.available.contains($0) ? $0 : nil } ?? .wifiModule
         wifiHost = defaults.string(forKey: "wifiHost") ?? "1.2.3.4"
         wifiPort = defaults.string(forKey: "wifiPort") ?? "2000"
         networkHost = defaults.string(forKey: "networkHost") ?? "127.0.0.1"

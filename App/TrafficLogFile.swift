@@ -1,11 +1,10 @@
 import Foundation
 import ScopeKit
 
-/// Mirrors the traffic log to `~/Library/Logs/scopeOS/`, one file per launch, so a session's traffic can be sent
+/// Mirrors the traffic log to `~/Library/Logs/scopeOS/` (Documents › Logs on iOS), one file per launch, so a session's traffic can be sent
 /// afterwards even if the app has quit. Keeps the newest `keep` files.
 final class TrafficLogFile {
-    static let folder = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("Logs/scopeOS", isDirectory: true)
+    static let folder = Platform.logsFolder
     private static let keep = 20
 
     private let folder: URL
