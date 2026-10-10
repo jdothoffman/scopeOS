@@ -523,6 +523,7 @@ private struct HoldArrow: View {
     let positive: Bool
     let systemImage: String
     @State private var pressed = false
+    @GestureState private var touching = false
 
     private var isMine: Bool { model.activeMove.map { $0.axis == axis && $0.positive == positive } ?? false }
 
@@ -543,19 +544,19 @@ private struct HoldArrow: View {
             .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(isMine ? Color.clear : Theme.hairline, lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 2))
             .opacity(enabled ? 1 : 0.35)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !pressed, enabled else { return }
-                        pressed = true
-                        model.pressArrow(axis, positive: positive)
-                    }
-                    .onEnded { _ in
-                        guard pressed else { return }
-                        pressed = false
-                        model.releaseArrow()
-                    }
-            )
+            // `touching` is reset when the gesture ends and also when the system cancels it (Control Center, an alert, a
+            // second gesture taking over), which never calls `onEnded`: the move must stop either way.
+            .gesture(DragGesture(minimumDistance: 0).updating($touching) { _, touching, _ in touching = true })
+            .onChange(of: touching) { _, nowTouching in
+                if nowTouching {
+                    guard !pressed, enabled else { return }
+                    pressed = true
+                    model.pressArrow(axis, positive: positive)
+                } else if pressed {
+                    pressed = false
+                    model.releaseArrow()
+                }
+            }
             .onChange(of: enabled) { _, nowEnabled in
                 if !nowEnabled && pressed {
                     pressed = false
