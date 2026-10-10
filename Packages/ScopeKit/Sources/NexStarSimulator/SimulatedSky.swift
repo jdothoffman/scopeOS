@@ -1,7 +1,8 @@
 import Foundation
 import ScopeKit
 
-/// A pretend mount that tracks a target for a while, slews to the next one, and repeats.
+/// Where the pretend mount points by itself: either parked (still until moved, like a real mount just switched on), or
+/// on a tour that tracks a target for a while, slews to the next one, and repeats.
 public struct SimulatedSky: Sendable {
     public struct Target: Sendable {
         public let name: String
@@ -19,11 +20,28 @@ public struct SimulatedSky: Sendable {
     public let trackSeconds: Double
     public let slewSeconds: Double
     private let start: Date
+    /// Set for a parked mount: where it points until moved.
+    public let parkedAt: Horizontal?
 
+    /// The tour.
     public init(trackSeconds: Double = 15, slewSeconds: Double = 5, start: Date = .now) {
         self.trackSeconds = trackSeconds
         self.slewSeconds = slewSeconds
         self.start = start
+        parkedAt = nil
+    }
+
+    private init(parkedAt: Horizontal) {
+        trackSeconds = .infinity
+        slewSeconds = 0
+        start = .now
+        self.parkedAt = parkedAt
+    }
+
+    /// A mount that stays where it is until moved, switched on at the home position by default: level and pointing
+    /// north, so its motor angles are the sky's.
+    public static func parked(at position: Horizontal = Horizontal(azimuth: 0, altitude: 0)) -> SimulatedSky {
+        SimulatedSky(parkedAt: position)
     }
 
     public struct State: Sendable {
@@ -33,7 +51,11 @@ public struct SimulatedSky: Sendable {
         public let targetName: String
     }
 
+    /// For a parked mount the equatorial position is a placeholder: `SimulatedMount` works it out from the location.
     public func state(at date: Date = .now) -> State {
+        if let parkedAt {
+            return State(equatorial: Equatorial(raHours: 0, decDegrees: 0), horizontal: parkedAt, slewing: false, targetName: "Parked")
+        }
         let cycle = trackSeconds + slewSeconds
         let elapsed = max(0, date.timeIntervalSince(start))
         let index = Int(elapsed / cycle) % Self.targets.count

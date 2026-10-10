@@ -53,7 +53,7 @@ struct FocusCard: View {
                      : "Connect over the WiFi module to use the focus motor.")
                     .foregroundStyle(Theme.textSecondary)
             }
-            if AppTab.available.contains(.camera) { // the focus aid reads the camera preview
+            if AppTab.available(for: model).contains(.camera) { // the focus aid reads the camera preview
                 Divider().overlay(Color.white.opacity(0.06))
                 FocusAid()
             }
@@ -149,7 +149,7 @@ private struct FocusStatus: View {
                 } else if let notice = model.controlNotice, notice.hasPrefix("Focus") {
                     Text(notice).foregroundStyle(Theme.warning)
                 } else {
-                    Text(AppTab.available.contains(.camera) ? "Tip: watch the camera preview and step until the planet's edge is crisp."
+                    Text(AppTab.available(for: model).contains(.camera) ? "Tip: watch the camera preview and step until the planet's edge is crisp."
                          : "Tip: step until the planet's edge is crisp in the eyepiece.")
                         .foregroundStyle(Theme.textTertiary)
                 }

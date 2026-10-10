@@ -115,7 +115,13 @@ struct CameraCard: View {
 
     private var preview: some View {
         ZStack {
-            CameraPreview(session: camera.engine.session, nightVision: Appearance.shared.nightVision)
+            if camera.isSimulated {
+                if let image = camera.previewImage {
+                    Image(decorative: image, scale: 1).resizable().interpolation(.medium)
+                }
+            } else {
+                CameraPreview(session: camera.engine.session, nightVision: Appearance.shared.nightVision)
+            }
             if !camera.running {
                 VStack(spacing: 8) {
                     Image(systemName: "camera.aperture")

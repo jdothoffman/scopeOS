@@ -147,6 +147,13 @@ final class MonitorModel {
     private var activeSettings: ConnectionSettings?
     private var connectedClient: (any MountClient)?
     private var simulators: [SimulatorServer] = []
+    /// The built-in simulator's telescope while it runs: the simulated camera looks through it.
+    private(set) var simulatedMount: SimulatedMount?
+
+    /// Connected (or connecting) to the built-in simulator rather than a real mount.
+    var isSimulated: Bool { activeSettings.map(pointsAtSimulator) ?? false }
+    /// Where the built-in simulator listens; port 0 picks free ones (tests).
+    private let simulatorPorts: (aux: UInt16, handController: UInt16)
     /// About six minutes of WiFi polling; the file in `TrafficLogFile.folder` keeps everything.
     private static let maxLogEntries = 5_000
     private let logFile: TrafficLogFile
@@ -173,8 +180,10 @@ final class MonitorModel {
 
 
     /// `defaults` and `logFolder` are where settings and the traffic log are kept (tests use their own).
-    init(location: LocationModel, defaults: UserDefaults = .standard, logFolder: URL = TrafficLogFile.folder) {
+    init(location: LocationModel, defaults: UserDefaults = .standard, logFolder: URL = TrafficLogFile.folder,
+         simulatorPorts: (aux: UInt16, handController: UInt16) = (simulatorAuxPort, simulatorHandControllerPort)) {
         self.location = location
+        self.simulatorPorts = simulatorPorts
         self.defaults = defaults
         logFile = TrafficLogFile(folder: logFolder)
         kind = Kind(rawValue: defaults.string(forKey: "kind") ?? "").flatMap { Kind.available.contains($0) ? $0 : nil } ?? .wifiModule
@@ -199,13 +208,15 @@ final class MonitorModel {
 
     func connect() {
         guard task == nil else { return }
-        let settings: ConnectionSettings
         do {
-            settings = try makeSettings()
+            start(try makeSettings())
         } catch {
             lastError = error.localizedDescription
-            return
         }
+    }
+
+    private func start(_ settings: ConnectionSettings) {
+        guard task == nil else { return }
         lastError = nil
         status = nil
         retryAttempt = 0
@@ -353,9 +364,10 @@ final class MonitorModel {
     }
 
     func stopSimulator() {
-        if let activeSettings, Self.pointsAtSimulator(activeSettings) { disconnect() }
+        if let activeSettings, pointsAtSimulator(activeSettings) { disconnect() }
         simulators.forEach { $0.stop() }
         simulators = []
+        simulatedMount = nil
         simulatorState = .off
         append(TrafficEntry(.note, "Simulator stopped."))
     }
@@ -902,12 +914,16 @@ final class MonitorModel {
         }
     }
 
+    /// Runs a parked mount, switched on at the home position (level, pointing north) with a focus motor, that only
+    /// moves when told to; both protocols describe it. Connects to it over the WiFi module's protocol, the one that
+    /// can move it, without touching the saved connection settings.
     private func launchSimulator() async {
-        let sky = SimulatedSky()
+        let mount = SimulatedMount(sky: .parked(), focuser: true)
+        mount.setObserver(location.observer)
         var started: [SimulatorServer] = []
         do {
-            for (flavor, port) in [(SimulatorServer.Flavor.aux, Self.simulatorAuxPort), (.handController, Self.simulatorHandControllerPort)] {
-                let server = try SimulatorServer(flavor: flavor, port: port, sky: sky, focuser: flavor == .aux)
+            for (flavor, port) in [(SimulatorServer.Flavor.aux, simulatorPorts.aux), (.handController, simulatorPorts.handController)] {
+                let server = try SimulatorServer(flavor: flavor, port: port, mount: mount)
                 server.onEvent = { [weak self] message in
                     Task { @MainActor in self?.append(TrafficEntry(.note, "Simulator: \(message)")) }
                 }
@@ -922,21 +938,21 @@ final class MonitorModel {
         }
 
         simulators = started
+        simulatedMount = mount
         simulatorState = .running
-        append(TrafficEntry(.note, "Simulator running on 127.0.0.1: AUX port \(Self.simulatorAuxPort), hand controller port \(Self.simulatorHandControllerPort)."))
+        let auxPort = started[0].port ?? simulatorPorts.aux
+        append(TrafficEntry(.note, "Simulator running on 127.0.0.1: AUX port \(auxPort), hand controller port \(started[1].port ?? simulatorPorts.handController)."))
 
         guard !isRunning else { return }
-        kind = .networkHandController
-        networkHost = "127.0.0.1"
-        networkPort = String(Self.simulatorHandControllerPort)
-        connect()
+        start(.wifiModule(host: "127.0.0.1", port: auxPort))
     }
 
-    private static func pointsAtSimulator(_ settings: ConnectionSettings) -> Bool {
+    /// Whether `settings` lead to the built-in simulator while it runs.
+    private func pointsAtSimulator(_ settings: ConnectionSettings) -> Bool {
         let loopback = ["127.0.0.1", "localhost", "::1"]
         switch settings {
-        case .wifiModule(let host, let port): return loopback.contains(host) && port == simulatorAuxPort
-        case .networkHandController(let host, let port): return loopback.contains(host) && port == simulatorHandControllerPort
+        case .wifiModule(let host, let port), .networkHandController(let host, let port):
+            return loopback.contains(host) && simulators.contains { $0.port == port }
         case .usbHandController: return false
         }
     }
@@ -989,6 +1005,7 @@ final class MonitorModel {
                     let latest = try await client.readStatus()
                     guard !Task.isCancelled else { break }
                     status = latest
+                    simulatedMount?.setObserver(location.observer) // for its RA/Dec, should the location change
                     trackAzimuth(latest)
                     offerHomeIfNeeded(latest)
                     if checkReturnHome, latest.calibration != nil, latest.calibration == home {

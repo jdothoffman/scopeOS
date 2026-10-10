@@ -1,5 +1,6 @@
 import Foundation
 import NexStarSimulator
+import ScopeCapture
 import ScopeKit
 import Testing
 
@@ -285,6 +286,62 @@ struct MonitorModelTests {
         #expect(model.driving == nil)
         #expect(model.isRunning)
         #expect(model.phase == .connected)
+    }
+
+    /// Start Simulator gives a mount that can be moved (the WiFi module's protocol) and a camera, without touching the
+    /// saved WiFi address.
+    @Test func theBuiltInSimulatorCanBeMovedAndHasACamera() async throws {
+        let suite = "ScopeOSTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        let logFolder = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: logFolder)
+        }
+        let location = LocationModel(defaults: defaults)
+        location.manualLatitude = "38.89"
+        location.manualLongitude = String(Self.longitude(sunHourAngle: 180))
+        location.applyManual()
+        // Free ports, so a copy of scopeOS or scopesim already running doesn't get in the way.
+        let model = MonitorModel(location: location, defaults: defaults, logFolder: logFolder, simulatorPorts: (0, 0))
+        let camera = CameraModel(monitor: model, location: location)
+        model.wifiHost = "192.168.1.50"
+        model.startSimulator()
+        defer { model.stopSimulator() }
+        try await Self.waitUntil(timeout: .seconds(30)) { model.phase == .connected && model.status?.horizontal != nil } failure: {
+            "not connected: \(model.simulatorState), phase \(model.phase), error \(model.lastError ?? "none"), log \(model.log.suffix(6).map(\.text))"
+        }
+
+        #expect(model.isSimulated)
+        #expect(model.status?.protocolKind == .aux)
+        #expect(model.canNudge)
+        #expect(model.wifiHost == "192.168.1.50", "the saved address is left alone")
+        let start = try #require(model.status?.horizontal)
+        #expect(abs(start.azimuth) < 0.01 && abs(start.altitude) < 0.01, "switched on at home, level and pointing north")
+
+        model.movementEnabled = true
+        model.pressArrow(.azimuth, positive: true)
+        try await Task.sleep(for: .seconds(2))
+        model.releaseArrow()
+        await model.releaseControls()
+        try await Task.sleep(for: .seconds(1.5))
+        let moved = Astronomy.shortTurn(from: start.azimuth, to: try #require(model.status?.horizontal).azimuth)
+        #expect(moved > 0.5, "moved \(moved)°")
+
+        // The simulator's camera: chosen when it starts, and fast enough in a debug build.
+        camera.simulatorChanged()
+        #expect(camera.isSimulated)
+        camera.startPreview()
+        try await Self.waitUntil(timeout: .seconds(10)) { camera.previewImage != nil && camera.stats.framesPerSecond > 0 }
+        try await Task.sleep(for: .seconds(2))
+        #expect(camera.stats.framesPerSecond > 20, "\(camera.stats.framesPerSecond) fps")
+        #expect(!camera.controls.isEmpty, "exposure and gain")
+        camera.stopPreview()
+
+        model.stopSimulator()
+        camera.simulatorChanged()
+        #expect(model.phase == .idle)
+        #expect(!camera.cameras.contains { $0.id == SimulatedCamera.id })
     }
 
     /// An abandoned connection attempt that only gives up after a new connection is made mustn't tear the new one

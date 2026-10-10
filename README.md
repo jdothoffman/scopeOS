@@ -60,7 +60,7 @@ The same app, with the same safety rules, for iPhone and iPad (iOS 26 or later).
 What's different from the Mac:
 
 - **Connections:** the WiFi module and network adapters only. iOS has no serial ports, so no USB hand controller (and so no RA/Dec).
-- **No Camera tab yet.** An iPad can take a webcam-style camera too; that's planned. The focus motor and its controls are there; the focus aid, which reads the camera, isn't.
+- **No Camera tab yet**, except while the simulator runs (debug builds), with its simulated camera. An iPad can take a webcam-style camera too; that's planned. The focus motor and its controls are there; the focus aid, which reads the camera, comes and goes with the Camera tab.
 - **Location:** an iPhone (and a cellular iPad) has GPS, so **Use My Location** works on the telescope's WiFi, without internet.
 - **STOP:** on iPhone, and on iPad in portrait or Split View, STOP is a full-width red bar along the bottom of the screen, on every tab. A keyboard's Esc works as on the Mac.
 - **Leaving the app** (Home, the app switcher, locking the screen) stops any move, Return to home or Go to, and closes the connection, since iOS stops apps that aren't on screen. Coming back reconnects with the same calibration; a Go to has to be asked for again. Pulling down Control Center or Notification Centre, or an alert or call, stops a held arrow or focus button.
@@ -140,21 +140,26 @@ The WiFi module talks Celestron's AUX bus protocol directly to the motor boards.
 
 ## Try it without the telescope
 
-A simulated mount is included. It cycles between Saturn, the Moon, Vega and Jupiter, slewing between them every 20 seconds.
+Debug builds have a simulated telescope: click **Start Simulator** (Setup tab). scopeOS runs it itself and connects to it over the WiFi module's protocol, so everything can be tried: holds, Fine steps, Calibrate, Return to home, Go to, the focus motor and the camera. Your saved WiFi address is left alone. The link status reads **Simulator** while connected to it. **Stop Simulator** shuts it down.
 
-In the app, click **Start Simulator**. scopeOS runs the simulated mount itself and connects to it. Click **Stop Simulator** to shut it down.
+- **The mount** was "switched on" at its home position: level and pointing north, so its motor angles are the sky's. It moves only when you move it, at a steady slow speed. The usual rules still apply: switch **Movement** (and **Up/down**) on, set a location, and by day turn off **Lock while the Sun is up**. The 30° Sun keep-out stays. To use Go to and Return to home, calibrate first: it really is level and pointing north at the start, so **Calibrate › Tube is level now** and **Pointing true north now** (and **Save as home position**) are exact.
+- **The camera** ("Simulated camera" on the Camera tab, chosen when the simulator starts) shows what the telescope points at, at the 6SE's focal length (a 10.7′ field): catalog stars, the Moon and planets (Jupiter's belts, Saturn's rings), with seeing shimmer, sensor noise and a blue sky by day. Go to a planet or the Moon from the Sky map to find something. Its focus follows the simulated focus motor, which starts about 1,500 steps out, so there's focusing to do. Planets sharpen and the focus aid shows it, and a star far out of focus is the doughnut a Schmidt-Cassegrain shows. Exposure, gain and auto exposure work, and recordings are real SER files. On iPhone and iPad the Camera tab appears while the simulator runs.
 
 To run the simulator separately instead (for example, to use it with the terminal monitor):
 
 ```sh
 cd Packages/ScopeKit
-swift run scopesim
+swift run scopesim                              # parked at home, still until moved
+swift run scopesim --location 38.89 -77.03     # also gives the hand controller's RA/Dec for that place
+swift run scopesim --tour                       # the old tour: Saturn, the Moon, Vega and Jupiter in turn
 ```
 
 Then in scopeOS choose either:
 
-- **Network / simulator**, host `127.0.0.1`, port `2001` (hand-controller protocol), or
-- **WiFi module**, host `127.0.0.1`, port `2000` (AUX protocol).
+- **WiFi module**, host `127.0.0.1`, port `2000` (AUX protocol: moving and focusing work), or
+- **Network / simulator**, host `127.0.0.1`, port `2001` (hand-controller protocol: read-only, with RA/Dec).
+
+Both describe the same mount, so a move made over one shows in the other.
 
 ## Terminal monitor
 
@@ -175,6 +180,7 @@ App/                      SwiftUI app (window, view model), shared by the Mac an
   iOS/                    iPhone and iPad only: app lifecycle (stop and pause off screen), camera preview
 Packages/ScopeKit/
   Sources/ScopeKit/       Protocols, transports (TCP, USB serial), read-only guard, astronomy
+  Sources/ScopeCapture/   Camera capture, SER recording, the simulated camera
   Sources/NexStarSimulator/  Fake mount speaking both protocols
   Sources/scopesim/       Simulator command-line tool
   Sources/scopeos-cli/   Terminal monitor

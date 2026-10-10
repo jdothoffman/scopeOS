@@ -59,11 +59,27 @@ public struct UVCRange: Sendable, Equatable {
     public var maximum: Int
     public var step: Int
     public var defaultValue: Int
+
+    public init(minimum: Int, maximum: Int, step: Int, defaultValue: Int) {
+        self.minimum = minimum
+        self.maximum = maximum
+        self.step = step
+        self.defaultValue = defaultValue
+    }
+}
+
+/// A camera's adjustable controls, in USB Video Class terms: a real camera's over USB (`UVCCamera`) or the simulated
+/// camera's (`SimulatedCamera`). Calls may block for a few milliseconds; use from a background queue.
+public protocol CameraControlling: AnyObject, Sendable {
+    /// The control's limits, or nil if the camera doesn't have it.
+    func range(_ control: UVCControl) -> UVCRange?
+    func value(_ control: UVCControl) -> Int?
+    @discardableResult func set(_ control: UVCControl, _ value: Int) -> Bool
 }
 
 /// A UVC camera's controls, reached over USB alongside macOS's own video streaming.
 /// Calls block for a few milliseconds each; use from a background queue.
-public final class UVCCamera: @unchecked Sendable {
+public final class UVCCamera: CameraControlling, @unchecked Sendable {
     private let device: OpaquePointer
     private let lock = NSLock()
 
