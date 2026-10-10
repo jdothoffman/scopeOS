@@ -211,6 +211,7 @@ final class MonitorModel {
         retryAttempt = 0
         retryAt = nil
         homeAsked = false
+        pausedSettings = nil
         activeSettings = settings
         task = Task { await run(settings) }
     }
@@ -233,12 +234,59 @@ final class MonitorModel {
         arrivedAt = nil
         azimuthTrack = nil
         activeSettings = nil
+        pausedSettings = nil
         movementEnabled = false
         heldMove = nil
         activeMove = nil
         activeFocus = nil
         phase = .idle
         append(TrafficEntry(.note, "Disconnected."))
+    }
+
+    // MARK: Leaving the screen (iOS)
+
+    /// The connection `pause()` closed, to reopen on `resume()`.
+    private var pausedSettings: ConnectionSettings?
+    /// Between `pause()` and `resume()`: coming back while the stops are still going out keeps the connection.
+    private var leaving = false
+
+    /// For when iOS is about to suspend the app: stops everything moving (a held arrow or focus button, Return to
+    /// home, Go to), waits for those stops to go out, then closes the connection, so no move is left half-done while
+    /// the app can't run, and the WiFi module is free for other apps. Like an automatic reconnect, it keeps the
+    /// calibration (the motors keep counting while the mount stays on) and doesn't ask about the home position again.
+    func pause() async {
+        leaving = true
+        await releaseControls()
+        guard leaving, let running = task, let settings = activeSettings else { return }
+        pausedSettings = settings
+        running.cancel()
+        task = nil
+        connectedClient = nil
+        movementEnabled = false
+        heldMove = nil
+        activeMove = nil
+        activeFocus = nil
+        driving = nil
+        planAfter = nil
+        arrivedAt = nil
+        pendingGoTo = nil // a move needs asking for afresh once back
+        append(TrafficEntry(.note, "Paused: scopeOS left the screen."))
+        await running.value // closes the connection
+        if task == nil { phase = .idle } // unless `resume()` has already started a new one
+    }
+
+    /// Reopens the connection `pause()` closed.
+    func resume() {
+        leaving = false
+        guard let settings = pausedSettings else { return }
+        pausedSettings = nil
+        guard task == nil else { return }
+        lastError = nil
+        retryAttempt = 0
+        retryAt = nil
+        activeSettings = settings
+        append(TrafficEntry(.note, "Back on screen: reconnecting."))
+        task = Task { await run(settings) }
     }
 
     /// Searches the local network for WiFi modules and fills in the first one found.
