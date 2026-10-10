@@ -62,6 +62,8 @@ public final class CaptureEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     public var onStats: (@MainActor @Sendable (CaptureStats) -> Void)?
     /// Called when a recording ends, whether stopped, timed out or failed.
     public var onRecordingFinished: (@MainActor @Sendable (Result<RecordingResult, Error>) -> Void)?
+    /// The simulated camera has no capture session to preview: its frames come here instead, about 15 times a second.
+    public var onPreviewFrame: (@MainActor @Sendable (CGImage) -> Void)?
 
     private let sessionQueue = DispatchQueue(label: "ScopeCapture.session")
     private let videoQueue = DispatchQueue(label: "ScopeCapture.video")
@@ -76,9 +78,14 @@ public final class CaptureEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var rgbBuffer: [UInt8] = []
     private var frameCounter = 0
     private var recentSharpness: [Double] = []
+    private var simulation: (camera: SimulatedCamera, timer: DispatchSourceTimer, pool: CVPixelBufferPool)?
 
     public static func cameras() -> [CaptureCamera] {
+        #if os(macOS)
         let types: [AVCaptureDevice.DeviceType] = [.external, .builtInWideAngleCamera]
+        #else
+        let types: [AVCaptureDevice.DeviceType] = [.external] // a USB camera on an iPad, not the device's own
+        #endif
         // Telescope cameras first; the Mac's own camera and an iPhone (Continuity Camera) last.
         return AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video, position: .unspecified).devices
             .map { CaptureCamera(id: $0.uniqueID, name: $0.localizedName,
@@ -128,6 +135,70 @@ public final class CaptureEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         sessionQueue.async { [self] in
             if session.isRunning { session.stopRunning() }
         }
+        videoQueue.async { [self] in
+            simulation?.timer.cancel()
+            simulation = nil
+        }
+    }
+
+    /// Starts (or switches) the simulated camera, drawing frames at the format's rate and handling them just as a
+    /// real camera's.
+    public func startSimulated(_ camera: SimulatedCamera, formatID: String) throws {
+        guard let format = SimulatedCamera.formats.first(where: { $0.id == formatID }) else { throw CaptureError.formatMissing }
+        sessionQueue.async { [self] in
+            if session.isRunning { session.stopRunning() }
+        }
+        videoQueue.async { [self] in
+            simulation?.timer.cancel()
+            simulation = nil
+            var pool: CVPixelBufferPool?
+            let attributes: [String: Any] = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                                             kCVPixelBufferWidthKey as String: format.width,
+                                             kCVPixelBufferHeightKey as String: format.height]
+            CVPixelBufferPoolCreate(nil, nil, attributes as CFDictionary, &pool)
+            guard let pool else { return }
+            lastSize = nil
+            frameTimes.removeAll()
+            stats.framesPerSecond = 0
+            let timer = DispatchSource.makeTimerSource(queue: videoQueue)
+            // A camera's frames come steadily; without a tight leeway the system may bunch the timer's firings up.
+            timer.schedule(deadline: .now(), repeating: 1 / format.maxFrameRate, leeway: .milliseconds(2))
+            timer.setEventHandler { [weak self] in self?.simulateFrame() }
+            simulation = (camera, timer, pool)
+            timer.resume()
+        }
+    }
+
+    /// One simulated frame (on videoQueue).
+    private func simulateFrame() {
+        guard let simulation else { return }
+        var buffer: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, simulation.pool, &buffer)
+        guard let buffer else { return }
+        CVPixelBufferLockBaseAddress(buffer, [])
+        if let base = CVPixelBufferGetBaseAddress(buffer) {
+            simulation.camera.render(into: base, width: CVPixelBufferGetWidth(buffer), height: CVPixelBufferGetHeight(buffer),
+                                     rowBytes: CVPixelBufferGetBytesPerRow(buffer))
+        }
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        handle(buffer)
+        if frameCounter % 2 == 0, let image = Self.image(buffer) {
+            let callback = onPreviewFrame
+            Task { @MainActor in callback?(image) }
+        }
+    }
+
+    /// A copy of a BGRA frame as an image, for the simulated camera's preview.
+    private static func image(_ pixels: CVPixelBuffer) -> CGImage? {
+        CVPixelBufferLockBaseAddress(pixels, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(pixels, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(pixels) else { return nil }
+        let rowBytes = CVPixelBufferGetBytesPerRow(pixels), height = CVPixelBufferGetHeight(pixels)
+        guard let provider = CGDataProvider(data: Data(bytes: base, count: rowBytes * height) as CFData) else { return nil }
+        return CGImage(width: CVPixelBufferGetWidth(pixels), height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: rowBytes,
+                       space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                       bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue),
+                       provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
     }
 
     private func configure(cameraID: String, formatID: String) throws {
@@ -220,13 +291,18 @@ public final class CaptureEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate (on videoQueue)
 
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        handle(pixels)
+    }
+
+    /// Measures, records and reports one BGRA frame, from the camera or the simulation (on videoQueue).
+    private func handle(_ pixels: CVPixelBuffer) {
         let now = CACurrentMediaTime()
         frameTimes.append(now)
         frameTimes.removeAll { now - $0 > 2 }
         stats.framesPerSecond = frameTimes.count > 1 ? Double(frameTimes.count - 1) / (now - frameTimes[0]) : 0
         stats.lastFrame = .now
 
-        guard let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lastSize = (CVPixelBufferGetWidth(pixels), CVPixelBufferGetHeight(pixels))
         if now - lastStatsSent > 0.25 { measure(pixels) }
         frameCounter += 1

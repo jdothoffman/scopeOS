@@ -7,12 +7,13 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
-    /// The camera needs a Mac for now (an iPad can take a USB camera too: #36).
-    static var available: [AppTab] {
+    /// The tabs this device shows. On iOS the Camera tab needs the simulator for now, which has a camera of its own
+    /// (an iPad can take a USB camera too: #36).
+    @MainActor static func available(for model: MonitorModel) -> [AppTab] {
         #if os(macOS)
         allCases
         #else
-        [.telescope, .sky, .setup]
+        model.simulatorState == .running ? allCases : [.telescope, .sky, .setup]
         #endif
     }
 
@@ -46,6 +47,7 @@ enum AppTab: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(CameraModel.self) private var camera
     @AppStorage("selectedTab") private var tab: AppTab = .telescope
     @State private var width = LayoutWidth.wide
 
@@ -94,6 +96,11 @@ struct ContentView: View {
             // A held arrow vanishes with its tab before it can see the mouse button come up: stop the move now.
             model.releaseArrow()
             model.releaseFocus()
+        }
+        .onChange(of: model.simulatorState) {
+            // The simulator brings its own camera (and, on iOS, the Camera tab) and takes them away again.
+            camera.simulatorChanged()
+            if !AppTab.available(for: model).contains(tab) { tab = .telescope }
         }
         .onChange(of: width) {
             // Likewise when the layout changes under the finger (turning an iPhone or iPad, resizing Split View).
@@ -183,7 +190,7 @@ private struct SetupTab: View {
     @Environment(\.layoutWidth) private var width
 
     /// Recording settings only where there's a Camera tab.
-    private var recordings: Bool { AppTab.available.contains(.camera) }
+    private var recordings: Bool { AppTab.available(for: model).contains(.camera) }
 
     var body: some View {
         if width == .narrow {
@@ -221,7 +228,7 @@ private struct TabBar: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(AppTab.available) { item in
+            ForEach(AppTab.available(for: model)) { item in
                 Button {
                     tab = item
                 } label: {
@@ -259,6 +266,7 @@ private struct TabBar: View {
     }
 
     private var connectionSummary: String {
+        if model.isRunning, model.isSimulated { return "Built-in simulator · WiFi-module protocol" }
         let target = switch model.kind {
         case .wifiModule: "WiFi module · \(model.wifiHost):\(model.wifiPort)"
         case .usbHandController: "USB · \(model.serialPath.isEmpty ? "no port" : model.serialPath)"
@@ -463,7 +471,8 @@ struct HeaderBar: View {
         case .idle: "Offline"
         case .connecting: model.retryAttempt > 0 ? "Connecting (attempt \(model.retryAttempt + 1))" : "Connecting"
         case .connected:
-            if model.isLinkStale(at: date), let age = model.readingAge(at: date) { "No data for \(Int(age)) s" } else { "Link active" }
+            if model.isLinkStale(at: date), let age = model.readingAge(at: date) { "No data for \(Int(age)) s" }
+            else { model.isSimulated ? "Simulator" : "Link active" }
         case .waitingToRetry:
             if let retryAt = model.retryAt { "Retrying in \(max(0, Int(retryAt.timeIntervalSince(date).rounded(.up)))) s" } else { "Retrying" }
         }
@@ -528,10 +537,18 @@ struct ConnectionPanel: View {
                 simulatorButton
             }
 
-            Text(model.kind.help)
-                .font(.caption)
-                .foregroundStyle(Theme.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
+            if model.isRunning, model.isSimulated {
+                Label("Connected to the built-in simulator over the WiFi module's protocol: a pretend mount, switched on at its home position (level, pointing north), with a focus motor and a camera (Camera tab). It moves only when you move it.",
+                      systemImage: "play.circle")
+                    .font(.caption)
+                    .foregroundStyle(Theme.ok)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(model.kind.help)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if model.kind == .wifiModule, let message = model.findMessage {
                 Label(message, systemImage: model.foundTelescopes.isEmpty && !model.finding ? "exclamationmark.circle" : "scope")
                     .font(.caption)
@@ -620,7 +637,7 @@ struct ConnectionPanel: View {
                 model.simulatorState == .off ? model.startSimulator() : model.stopSimulator()
             }
             .disabled(model.simulatorState == .starting)
-            .help("Runs a pretend mount inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)).")
+            .help("Runs a pretend mount, with a focus motor and a camera, inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)), and connects to it over the WiFi module's protocol so it can be moved.")
         }
     }
 }

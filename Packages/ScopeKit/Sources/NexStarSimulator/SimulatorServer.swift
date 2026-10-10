@@ -2,38 +2,36 @@ import Foundation
 import Network
 import ScopeKit
 
-/// Serves a `SimulatedSky` over TCP, speaking either the hand-controller protocol or the AUX bus protocol.
+/// Serves a `SimulatedMount` over TCP, speaking either the hand-controller protocol or the AUX bus protocol.
 public final class SimulatorServer: @unchecked Sendable {
     public enum Flavor: Sendable { case handController, aux }
 
     public let flavor: Flavor
-    public let sky: SimulatedSky
-    /// Whether a Celestron focus motor is fitted (AUX flavor only), and its calibrated range.
-    public let hasFocuser: Bool
-    public static let focuserLimits = 1_000 ... 39_000
+    /// The mount this server reports and moves. Pass the same one to an AUX and a hand-controller server to have both
+    /// describe one telescope.
+    public let mount: SimulatedMount
+    public var sky: SimulatedSky { mount.sky }
+    /// Whether a Celestron focus motor is fitted (AUX flavor only).
+    public var hasFocuser: Bool { mount.hasFocuser }
+    public static var focuserLimits: ClosedRange<Int> { SimulatedMount.focuserLimits }
     public var onEvent: (@Sendable (String) -> Void)?
 
     private let listener: NWListener
     private let queue: DispatchQueue
     /// Only touched on `queue`.
     private var sessions: [ObjectIdentifier: Session] = [:]
-    /// Set when a client stops a slew: the mount stays where it stopped for one cycle. Only touched on `queue`.
-    private var hold: (state: SimulatedSky.State, until: Date)?
-    /// Angles added by nudges, animated so the mount reports slewing while a motor turns. Only touched on `queue`.
-    private var azimuthNudge = NudgeMotion()
-    private var altitudeNudge = NudgeMotion()
-    /// Only touched on `queue`.
-    private var focuser = FocuserMotion(position: 20_000)
-    /// How long a nudge takes per degree (tests speed it up).
-    private let secondsPerDegree: Double
 
-    /// Pass port 0 to pick a free port; read `port` after `start()` returns.
-    public init(flavor: Flavor, port: UInt16, sky: SimulatedSky = SimulatedSky(), loopbackOnly: Bool = true, focuser: Bool = false,
-                secondsPerDegree: Double = 1.5) throws {
-        hasFocuser = focuser
-        self.secondsPerDegree = secondsPerDegree
+    /// Pass port 0 to pick a free port; read `port` after `start()` returns. `sky`, `focuser` and `secondsPerDegree`
+    /// make a mount of its own unless one is given.
+    public convenience init(flavor: Flavor, port: UInt16, sky: SimulatedSky = SimulatedSky(), loopbackOnly: Bool = true,
+                            focuser: Bool = false, secondsPerDegree: Double = 1.5) throws {
+        try self.init(flavor: flavor, port: port, mount: SimulatedMount(sky: sky, focuser: focuser, secondsPerDegree: secondsPerDegree),
+                      loopbackOnly: loopbackOnly)
+    }
+
+    public init(flavor: Flavor, port: UInt16, mount: SimulatedMount, loopbackOnly: Bool = true) throws {
         self.flavor = flavor
-        self.sky = sky
+        self.mount = mount
         queue = DispatchQueue(label: "NexStarSimulator.\(flavor)")
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
@@ -77,61 +75,18 @@ public final class SimulatorServer: @unchecked Sendable {
         }
     }
 
-    private func currentState() -> SimulatedSky.State {
-        let now = Date()
-        let base = scheduledState(at: now)
-        let az = azimuthNudge.offset(at: now), alt = altitudeNudge.offset(at: now)
-        let azimuth = (base.horizontal.azimuth + az.degrees).truncatingRemainder(dividingBy: 360)
-        return SimulatedSky.State(
-            equatorial: base.equatorial,
-            horizontal: Horizontal(azimuth: azimuth < 0 ? azimuth + 360 : azimuth, altitude: base.horizontal.altitude + alt.degrees),
-            slewing: base.slewing || az.moving || alt.moving,
-            targetName: base.targetName
-        )
-    }
+    private func currentState() -> SimulatedSky.State { mount.state() }
 
-    /// Whether one motor is turning: a slew moves both, a nudge only its own. Each motor answers for itself, as on
-    /// the real mount.
-    fileprivate func isTurning(_ motor: AuxDevice) -> Bool {
-        let now = Date()
-        let nudge = motor == .azimuthMotor ? azimuthNudge : altitudeNudge
-        return scheduledState(at: now).slewing || nudge.offset(at: now).moving
-    }
-
-    /// The sky's schedule, or the position a stop froze it at.
-    private func scheduledState(at now: Date) -> SimulatedSky.State {
-        if let hold, now < hold.until { return hold.state }
-        hold = nil
-        return sky.state(at: now)
-    }
+    fileprivate func isTurning(_ motor: AuxDevice) -> Bool { mount.isTurning(motor) }
 
     private func stopMotion() {
-        let now = Date()
-        let nudging = azimuthNudge.offset(at: now).moving || altitudeNudge.offset(at: now).moving
-        azimuthNudge.freeze(at: now)
-        altitudeNudge.freeze(at: now)
-        let base = scheduledState(at: now)
-        if base.slewing {
-            let stopped = SimulatedSky.State(equatorial: base.equatorial, horizontal: base.horizontal, slewing: false, targetName: "Stopped")
-            hold = (stopped, now.addingTimeInterval(sky.trackSeconds + sky.slewSeconds))
-        }
-        if nudging || base.slewing { onEvent?("Stop received: holding position") }
+        if mount.stop() { onEvent?("Stop received: holding position") }
     }
 
-    /// Turns a simulated motor to `target` (24-bit fraction of a turn) at `secondsPerDegree`.
+    /// Turns a simulated motor to `target` (24-bit fraction of a turn).
     private func nudge(_ motor: AuxDevice, to target: [UInt8]) {
-        let now = Date()
-        let targetDegrees = Double(Int(target[0]) << 16 | Int(target[1]) << 8 | Int(target[2])) / 16_777_216 * 360
-        let state = currentState()
-        var delta = (targetDegrees - (motor == .azimuthMotor ? state.horizontal.azimuth : state.horizontal.altitude))
-            .truncatingRemainder(dividingBy: 360)
-        if delta > 180 { delta -= 360 }
-        if delta < -180 { delta += 360 }
-        if motor == .azimuthMotor {
-            azimuthNudge.start(by: delta, at: now, secondsPerDegree: secondsPerDegree)
-        } else {
-            altitudeNudge.start(by: delta, at: now, secondsPerDegree: secondsPerDegree)
-        }
+        let degrees = Double(Int(target[0]) << 16 | Int(target[1]) << 8 | Int(target[2])) / 16_777_216 * 360
+        let delta = mount.move(motor, to: degrees)
         onEvent?(String(format: "Nudge received: %@ %+.2f°", motor.label, delta))
     }
 
@@ -142,16 +97,16 @@ public final class SimulatorServer: @unchecked Sendable {
         func bytes32(_ value: Int) -> [UInt8] { [UInt8(value >> 24 & 0xFF)] + bytes24(value) }
         switch packet.command {
         case AuxQuery.getVersion.rawValue: reply([1, 4])
-        case AuxQuery.getPosition.rawValue: reply(bytes24(focuser.position(at: now)))
-        case AuxQuery.slewDone.rawValue: reply([focuser.moving(at: now) ? 0x00 : 0xFF])
+        case AuxQuery.getPosition.rawValue: reply(bytes24(mount.focuserPosition(at: now)))
+        case AuxQuery.slewDone.rawValue: reply([mount.focuserMoving(at: now) ? 0x00 : 0xFF])
         case AuxQuery.focuserLimits.rawValue: reply(bytes32(Self.focuserLimits.lowerBound) + bytes32(Self.focuserLimits.upperBound))
         case FocusCommand.gotoCommand where packet.data.count == 3:
             let target = Int(packet.data[0]) << 16 | Int(packet.data[1]) << 8 | Int(packet.data[2])
-            focuser.start(to: min(Self.focuserLimits.upperBound, max(Self.focuserLimits.lowerBound, target)), at: now)
+            mount.moveFocuser(to: target, at: now)
             onEvent?("Focus GoTo received: \(target)")
             reply([])
         case StopCommand.auxCommand where packet.data == [0]:
-            focuser.freeze(at: now)
+            mount.stopFocuser(at: now)
             reply([])
         default:
             onEvent?("⚠️ Unexpected focuser packet: \(Hex.string(packet.encoded()))")
@@ -292,55 +247,6 @@ public final class SimulatorServer: @unchecked Sendable {
             timer.resume()
             chatter = timer
         }
-    }
-}
-
-/// A nudge in progress (or finished) on one simulated motor.
-struct NudgeMotion {
-    private var from = 0.0, to = 0.0, startTime = Date.distantPast, duration = 0.0
-
-    func offset(at now: Date) -> (degrees: Double, moving: Bool) {
-        let elapsed = now.timeIntervalSince(startTime)
-        guard elapsed < duration else { return (to, false) }
-        return (from + (to - from) * elapsed / duration, true)
-    }
-
-    mutating func start(by delta: Double, at now: Date, secondsPerDegree: Double) {
-        let current = offset(at: now).degrees
-        (from, to, startTime, duration) = (current, current + delta, now, max(0.3, abs(delta) * secondsPerDegree))
-    }
-
-    mutating func freeze(at now: Date) {
-        let current = offset(at: now).degrees
-        (from, to, duration) = (current, current, 0)
-    }
-}
-
-/// The simulated focus motor's position, moving at 2,000 steps per second during a GoTo.
-struct FocuserMotion {
-    private var from: Int, to: Int, startTime = Date.distantPast, duration = 0.0
-
-    init(position: Int) {
-        from = position
-        to = position
-    }
-
-    func position(at now: Date) -> Int {
-        let elapsed = now.timeIntervalSince(startTime)
-        guard elapsed < duration else { return to }
-        return from + Int(Double(to - from) * elapsed / duration)
-    }
-
-    func moving(at now: Date) -> Bool { now.timeIntervalSince(startTime) < duration }
-
-    mutating func start(to target: Int, at now: Date) {
-        let current = position(at: now)
-        (from, to, startTime, duration) = (current, target, now, max(0.2, Double(abs(target - current)) / 2_000))
-    }
-
-    mutating func freeze(at now: Date) {
-        let current = position(at: now)
-        (from, to, duration) = (current, current, 0)
     }
 }
 
