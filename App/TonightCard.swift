@@ -111,7 +111,7 @@ struct TonightList: View {
         } else if case .unavailable(let reason) = assistant.status {
             Text(reason).font(.caption).foregroundStyle(Theme.textTertiary)
         } else if tonight.suggestions != nil {
-            Label("Picked by Apple Intelligence, on this Mac. Times are the app's own.", systemImage: "apple.intelligence")
+            Label("Picked by Apple Intelligence, on this \(Platform.deviceName). Times are the app's own.", systemImage: "apple.intelligence")
                 .font(.caption)
                 .foregroundStyle(Theme.textTertiary)
         }
@@ -119,7 +119,7 @@ struct TonightList: View {
 
     private var helpText: String {
         if case .unavailable(let reason) = assistant.status { return reason }
-        return "Ask Apple Intelligence, on this Mac, to pick the best of tonight's targets for this telescope and say why"
+        return "Ask Apple Intelligence, on this \(Platform.deviceName), to pick the best of tonight's targets for this telescope and say why"
     }
 
     private var telescope: String {
@@ -164,7 +164,7 @@ struct AssistantCard: View {
                     case .turnedOff, .notInBuild:
                         EmptyView()
                     }
-                    Text("Ranks tonight's targets on the Sky tab. Runs on this Mac and sends nothing anywhere. It only picks from the targets scopeOS works out, and never moves the telescope: a pick just selects the target on the Sky map.")
+                    Text("Ranks tonight's targets on the Sky tab. Runs on this \(Platform.deviceName) and sends nothing anywhere. It only picks from the targets scopeOS works out, and never moves the telescope: a pick just selects the target on the Sky map.")
                         .font(.caption)
                         .foregroundStyle(Theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)

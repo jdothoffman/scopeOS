@@ -1,6 +1,6 @@
 # scopeOS
 
-**Telescope control and capture, made for the Mac**, for Celestron NexStar mounts. Built for a NexStar 6SE with StarSense and the SkyPortal WiFi module. It shows where the telescope is pointing, whether it is slewing, alignment, tracking mode, distance from the Sun, and connected devices; moves the mount (holds, Return to home, Go to a bright star), drives a Celestron focus motor with a focus aid, and records the telescope camera to SER files for stacking. An independent project: not made or endorsed by Celestron (see [Safety and disclaimer](#safety-and-disclaimer)).
+**Telescope control and capture, made for the Mac**, for Celestron NexStar mounts. Built for a NexStar 6SE with StarSense and the SkyPortal WiFi module. It shows where the telescope is pointing, whether it is slewing, alignment, tracking mode, distance from the Sun, and connected devices; moves the mount (holds, Return to home, Go to a bright star), drives a Celestron focus motor with a focus aid, and records the telescope camera to SER files for stacking. It also runs on iPhone and iPad (see [iPhone and iPad](#iphone-and-ipad)). An independent project: not made or endorsed by Celestron (see [Safety and disclaimer](#safety-and-disclaimer)).
 
 **Control is deliberately limited.** Apart from status queries, scopeOS sends only these commands:
 
@@ -43,11 +43,31 @@ The software is provided "as is", without warranty of any kind, under the [MIT L
 
 Or from the terminal: `scripts/run.sh` (debug) or `scripts/run.sh release`. To keep it in Applications, `scripts/run.sh install` builds the release version, copies it to /Applications and launches it; run it again after pulling changes to update the installed copy.
 
-Tests: `swift test` in `Packages/ScopeKit` (protocol, safety and motion logic, against the built-in simulator), and **Product › Test** (⌘U) or `xcodebuild test -project ScopeOS.xcodeproj -scheme ScopeOS` for the app's own logic. Neither needs the telescope, and the app tests keep their own settings, so they never touch yours. To check the layout without the telescope, `TEST_RUNNER_SCOPEOS_SNAPSHOTS=/some/folder xcodebuild test -project ScopeOS.xcodeproj -scheme ScopeOS -only-testing:ScopeOSTests/SnapshotTests` renders every tab, at the smallest window size and at 1440×900, to PNGs in that folder.
+Tests: `swift test` in `Packages/ScopeKit` (protocol, safety and motion logic, against the built-in simulator; the same tests also run on an iOS simulator with `xcodebuild test -scheme ScopeKit-Package -destination 'platform=iOS Simulator,name=iPhone 17'`), and **Product › Test** (⌘U) or `xcodebuild test -project ScopeOS.xcodeproj -scheme ScopeOS` for the app's own logic. Neither needs the telescope, and the app tests keep their own settings, so they never touch yours. To check the layout without the telescope, `TEST_RUNNER_SCOPEOS_SNAPSHOTS=/some/folder xcodebuild test -project ScopeOS.xcodeproj -scheme ScopeOS -only-testing:ScopeOSTests/SnapshotTests` renders every tab, at the smallest window size and at 1440×900, to PNGs in that folder.
 
 The window has four tabs (⌘1–⌘4): **Telescope** (pointing, status, sky chart, control pad, focus), **Sky** (a star map that follows the telescope, see [Sky map](#sky-map)), **Camera** (preview, histogram, camera controls and recording, with the control pad and focus beside it for centring and focusing), and **Setup** (connection and Find, location, devices, traffic log). The header, with the clocks, night vision, link status, **STOP** and Connect, stays visible on every tab. The link status turns amber ("No data for N s") if no reading has arrived for more than 5 seconds while connected, a sign the connection is failing before it errors out; hover over it for the age of the last reading. **⌘R** starts and stops a recording from any tab (Camera menu).
 
 The first time it connects over WiFi, macOS asks whether scopeOS may find devices on your local network. Click **Allow**.
+
+## iPhone and iPad
+
+The same app, with the same safety rules, for iPhone and iPad (iOS 26 or later).
+
+1. Open `ScopeOS.xcodeproj` in Xcode, plug in the iPhone or iPad (or pick it over WiFi), and choose the scheme **ScopeOS iOS** (debug: the simulator and movement switches) or **ScopeOS iOS Release** (for using the telescope).
+2. Press **Run**. It's signed with the project's development team; to build with your own, change `DEVELOPMENT_TEAM` for the iOS target in `project.yml` and run `xcodegen generate`. The first time, the device asks you to turn on **Developer Mode** (Settings › Privacy & Security).
+3. When it first connects, iOS asks whether scopeOS may find devices on your local network: **Allow**.
+
+What's different from the Mac:
+
+- **Connections:** the WiFi module and network adapters only. iOS has no serial ports, so no USB hand controller (and so no RA/Dec).
+- **No Camera tab yet.** An iPad can take a webcam-style camera too; that's planned. The focus motor and its controls are there; the focus aid, which reads the camera, isn't.
+- **Location:** an iPhone (and a cellular iPad) has GPS, so **Use My Location** works on the telescope's WiFi, without internet.
+- **STOP:** on iPhone, and on iPad in portrait or Split View, STOP is a full-width red bar along the bottom of the screen, on every tab. A keyboard's Esc works as on the Mac.
+- **Leaving the app** (Home, the app switcher, locking the screen) stops any move, Return to home or Go to, and closes the connection, since iOS stops apps that aren't on screen. Coming back reconnects with the same calibration; a Go to has to be asked for again. Pulling down Control Center or Notification Centre, or an alert or call, stops a held arrow or focus button.
+- **The screen stays on** while connected, so it can't lock in the middle of a move. Turn the brightness down, or use night vision.
+- **Traffic logs** are in the Files app, under On My iPhone (or iPad) › scopeOS › Logs; the traffic log's share button sends everything since launch.
+
+To try the layouts in the iOS Simulator without tapping through: debug builds take `-connect YES -startSimulator YES` at launch (for example `xcrun simctl launch booted com.jdot.ScopeOS -connect YES -startSimulator YES`), which connects with the saved settings and starts the simulated mount.
 
 ## Focus motor
 
@@ -90,7 +110,7 @@ While the camera preview runs, the Focus panel shows a live **sharpness** readin
 
 ## Location
 
-Click **Use My Location** in the Site panel (macOS asks for permission the first time), or enter latitude and longitude by hand. Macs have no GPS: Location Services finds your position from nearby WiFi networks, which is far more accurate than astronomy needs. It also needs internet, so set your location before joining the telescope's WiFi. scopeOS saves the last position.
+Click **Use My Location** in the Site panel (macOS or iOS asks for permission the first time), or enter latitude and longitude by hand. An iPhone uses its GPS, which works without internet. Macs have no GPS: Location Services finds your position from nearby WiFi networks, which is far more accurate than astronomy needs. It also needs internet, so set your location before joining the telescope's WiFi. scopeOS saves the last position.
 
 With a location, scopeOS shows sky darkness (daylight, twilight, dark sky), the Sun's altitude, local sidereal time, the Sun on the sky chart with its 30° keep-out zone (the same one moves are held to), and the telescope's distance from the Sun over the WiFi module too (approximate, from the motor angles): red and "TOO CLOSE" inside 30°, amber inside 45°.
 
@@ -150,7 +170,9 @@ swift run scopeos-cli net 127.0.0.1 2001 --verbose
 ## Project layout
 
 ```
-App/                      SwiftUI app (window, view model)
+App/                      SwiftUI app (window, view model), shared by the Mac and iOS apps
+  macOS/                  Mac only: app delegate (cleanup on quit), camera preview
+  iOS/                    iPhone and iPad only: app lifecycle (stop and pause off screen), camera preview
 Packages/ScopeKit/
   Sources/ScopeKit/       Protocols, transports (TCP, USB serial), read-only guard, astronomy
   Sources/NexStarSimulator/  Fake mount speaking both protocols

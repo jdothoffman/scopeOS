@@ -11,6 +11,15 @@ final class MonitorModel {
 
         var id: Self { self }
 
+        /// The connections this device can make: iOS has no serial ports, so no USB hand controller.
+        static var available: [Kind] {
+            #if os(macOS)
+            allCases
+            #else
+            [.wifiModule, .networkHandController]
+            #endif
+        }
+
         var title: String {
             switch self {
             case .wifiModule: "WiFi module"
@@ -22,7 +31,7 @@ final class MonitorModel {
         var help: String {
             switch self {
             case .wifiModule:
-                "Close the SkyPortal app first: the module accepts one connection at a time. On the module's own network (Celestron-XX) the address is 1.2.3.4; on your home or Starlink network, click Find. Shows motor angles; full sky coordinates need the USB option."
+                "Close the SkyPortal app first: the module accepts one connection at a time. On the module's own network (Celestron-XX) the address is 1.2.3.4; on your home or Starlink network, click Find. Shows motor angles; full sky coordinates need \(Kind.available.contains(.usbHandController) ? "the USB option" : "the hand controller's USB connection, from a Mac")."
             case .usbHandController:
                 "Plug a USB cable into the hand controller. Shows full sky coordinates (RA/Dec) plus azimuth and altitude."
             case .networkHandController:
@@ -168,7 +177,7 @@ final class MonitorModel {
         self.location = location
         self.defaults = defaults
         logFile = TrafficLogFile(folder: logFolder)
-        kind = Kind(rawValue: defaults.string(forKey: "kind") ?? "") ?? .wifiModule
+        kind = Kind(rawValue: defaults.string(forKey: "kind") ?? "").flatMap { Kind.available.contains($0) ? $0 : nil } ?? .wifiModule
         wifiHost = defaults.string(forKey: "wifiHost") ?? "1.2.3.4"
         wifiPort = defaults.string(forKey: "wifiPort") ?? "2000"
         networkHost = defaults.string(forKey: "networkHost") ?? "127.0.0.1"
@@ -202,6 +211,7 @@ final class MonitorModel {
         retryAttempt = 0
         retryAt = nil
         homeAsked = false
+        pausedSettings = nil
         activeSettings = settings
         task = Task { await run(settings) }
     }
@@ -224,12 +234,59 @@ final class MonitorModel {
         arrivedAt = nil
         azimuthTrack = nil
         activeSettings = nil
+        pausedSettings = nil
         movementEnabled = false
         heldMove = nil
         activeMove = nil
         activeFocus = nil
         phase = .idle
         append(TrafficEntry(.note, "Disconnected."))
+    }
+
+    // MARK: Leaving the screen (iOS)
+
+    /// The connection `pause()` closed, to reopen on `resume()`.
+    private var pausedSettings: ConnectionSettings?
+    /// Between `pause()` and `resume()`: coming back while the stops are still going out keeps the connection.
+    private var leaving = false
+
+    /// For when iOS is about to suspend the app: stops everything moving (a held arrow or focus button, Return to
+    /// home, Go to), waits for those stops to go out, then closes the connection, so no move is left half-done while
+    /// the app can't run, and the WiFi module is free for other apps. Like an automatic reconnect, it keeps the
+    /// calibration (the motors keep counting while the mount stays on) and doesn't ask about the home position again.
+    func pause() async {
+        leaving = true
+        await releaseControls()
+        guard leaving, let running = task, let settings = activeSettings else { return }
+        pausedSettings = settings
+        running.cancel()
+        task = nil
+        connectedClient = nil
+        movementEnabled = false
+        heldMove = nil
+        activeMove = nil
+        activeFocus = nil
+        driving = nil
+        planAfter = nil
+        arrivedAt = nil
+        pendingGoTo = nil // a move needs asking for afresh once back
+        append(TrafficEntry(.note, "Paused: scopeOS left the screen."))
+        await running.value // closes the connection
+        if task == nil { phase = .idle } // unless `resume()` has already started a new one
+    }
+
+    /// Reopens the connection `pause()` closed.
+    func resume() {
+        leaving = false
+        guard let settings = pausedSettings else { return }
+        pausedSettings = nil
+        guard task == nil else { return }
+        lastError = nil
+        retryAttempt = 0
+        retryAt = nil
+        activeSettings = settings
+        append(TrafficEntry(.note, "Back on screen: reconnecting."))
+        task = Task { await run(settings) }
     }
 
     /// Searches the local network for WiFi modules and fills in the first one found.

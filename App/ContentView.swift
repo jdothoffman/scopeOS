@@ -7,6 +7,15 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
+    /// The camera needs a Mac for now (an iPad can take a USB camera too: #36).
+    static var available: [AppTab] {
+        #if os(macOS)
+        allCases
+        #else
+        [.telescope, .sky, .setup]
+        #endif
+    }
+
     var title: String {
         switch self {
         case .telescope: "Telescope"
@@ -38,6 +47,7 @@ enum AppTab: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @Environment(MonitorModel.self) private var model
     @AppStorage("selectedTab") private var tab: AppTab = .telescope
+    @State private var width = LayoutWidth.wide
 
     var body: some View {
         ZStack {
@@ -63,17 +73,30 @@ struct ContentView: View {
                         case .setup: SetupTab()
                         }
                     }
-                    .padding(20)
+                    .padding(width == .narrow ? 12 : 20)
                 }
-                FooterBar()
+                if width == .wide {
+                    FooterBar()
+                } else if model.phase == .connected {
+                    StopBar() // the header has no room for it: here it's on every tab, and never scrolls away
+                }
             }
         }
+        .onGeometryChange(for: LayoutWidth.self) { LayoutWidth(windowWidth: $0.size.width) } action: { width = $0 }
+        .environment(\.layoutWidth, width)
         .foregroundStyle(Theme.textPrimary)
         .tint(Theme.accent)
         .colorMultiply(Theme.windowFilter)
+        #if os(macOS)
         .frame(minWidth: 1080, minHeight: 720)
+        #endif
         .onChange(of: tab) {
             // A held arrow vanishes with its tab before it can see the mouse button come up: stop the move now.
+            model.releaseArrow()
+            model.releaseFocus()
+        }
+        .onChange(of: width) {
+            // Likewise when the layout changes under the finger (turning an iPhone or iPad, resizing Split View).
             model.releaseArrow()
             model.releaseFocus()
         }
@@ -83,37 +106,73 @@ struct ContentView: View {
 /// Moving and monitoring the mount.
 private struct TelescopeTab: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
 
-    /// Control gets the whole right column, so the arrows, Stop and Go to never need scrolling to.
+    /// Control gets the whole right column, so the arrows, Stop and Go to never need scrolling to. In one column
+    /// it comes straight after where the scope points.
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(spacing: 16) {
-                PointingCard(status: model.status)
-                HStack(alignment: .top, spacing: 16) {
-                    VStack(spacing: 16) {
-                        StatusCard(status: model.status, pollTime: model.pollTime)
-                        FocusCard()
+        switch width {
+        case .wide:
+            HStack(alignment: .top, spacing: 16) {
+                VStack(spacing: 16) {
+                    PointingCard(status: model.status)
+                    HStack(alignment: .top, spacing: 16) {
+                        VStack(spacing: 16) {
+                            StatusCard(status: model.status, pollTime: model.pollTime)
+                            FocusCard()
+                        }
+                        SkyDomeCard(status: model.status)
+                            .frame(width: 330)
                     }
-                    SkyDomeCard(status: model.status)
-                        .frame(width: 330)
                 }
+                ControlCard()
+                    .frame(width: 330)
             }
-            ControlCard()
+        case .medium:
+            HStack(alignment: .top, spacing: 16) {
+                VStack(spacing: 16) {
+                    PointingCard(status: model.status)
+                    StatusCard(status: model.status, pollTime: model.pollTime)
+                    SkyDomeCard(status: model.status)
+                }
+                VStack(spacing: 16) {
+                    ControlCard()
+                    FocusCard()
+                }
                 .frame(width: 330)
+            }
+        case .narrow:
+            VStack(spacing: 12) {
+                PointingCard(status: model.status)
+                ControlCard()
+                FocusCard()
+                StatusCard(status: model.status, pollTime: model.pollTime)
+                SkyDomeCard(status: model.status)
+            }
         }
     }
 }
 
 /// Imaging: the camera, with the mount and focus controls beside it for centring and focusing on the preview.
 private struct CameraTab: View {
+    @Environment(\.layoutWidth) private var width
+
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            CameraCard()
+        if width == .wide {
+            HStack(alignment: .top, spacing: 16) {
+                CameraCard()
+                VStack(spacing: 16) {
+                    ControlCard()
+                    FocusCard()
+                }
+                .frame(width: 330)
+            }
+        } else {
             VStack(spacing: 16) {
+                CameraCard()
                 ControlCard()
                 FocusCard()
             }
-            .frame(width: 330)
         }
     }
 }
@@ -121,20 +180,35 @@ private struct CameraTab: View {
 /// Start-of-session setup and troubleshooting.
 private struct SetupTab: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
+
+    /// Recording settings only where there's a Camera tab.
+    private var recordings: Bool { AppTab.available.contains(.camera) }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(spacing: 16) {
+        if width == .narrow {
+            VStack(spacing: 12) {
                 ConnectionPanel()
+                SiteCard()
                 DevicesCard(status: model.status)
+                AssistantCard()
+                if recordings { RecordingSettingsCard() }
                 TrafficLogView()
             }
-            VStack(spacing: 16) {
-                SiteCard()
-                RecordingSettingsCard()
-                AssistantCard()
+        } else {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(spacing: 16) {
+                    ConnectionPanel()
+                    DevicesCard(status: model.status)
+                    TrafficLogView()
+                }
+                VStack(spacing: 16) {
+                    SiteCard()
+                    if recordings { RecordingSettingsCard() }
+                    AssistantCard()
+                }
+                .frame(width: 330)
             }
-            .frame(width: 330)
         }
     }
 }
@@ -142,11 +216,12 @@ private struct SetupTab: View {
 /// Tabs on the left; what scopeOS is connected to on the right.
 private struct TabBar: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
     @Binding var tab: AppTab
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(AppTab.allCases) { item in
+            ForEach(AppTab.available) { item in
                 Button {
                     tab = item
                 } label: {
@@ -159,8 +234,8 @@ private struct TabBar: View {
                             .padding(.top, 3)
                     }
                     .foregroundStyle(tab == item ? Theme.accent : Theme.textSecondary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, width == .narrow ? 10 : 14)
+                    .padding(.vertical, width == .narrow ? 11 : 9)
                     .overlay(alignment: .bottom) {
                         Rectangle().fill(tab == item ? Theme.accent : Color.clear).frame(height: 2)
                     }
@@ -171,12 +246,14 @@ private struct TabBar: View {
                 .help("\(item.title) (⌘\(String(item.shortcut.character)))")
             }
             Spacer()
-            Text(connectionSummary)
-                .font(Theme.numeric(11))
-                .foregroundStyle(Theme.textTertiary)
-                .lineLimit(1)
+            if width == .wide {
+                Text(connectionSummary)
+                    .font(Theme.numeric(11))
+                    .foregroundStyle(Theme.textTertiary)
+                    .lineLimit(1)
+            }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, width == .narrow ? 6 : 20)
         .background(Color.black.opacity(0.25))
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 1) }
     }
@@ -195,18 +272,23 @@ private struct TabBar: View {
 struct HeaderBar: View {
     @Environment(MonitorModel.self) private var model
     @Environment(LocationModel.self) private var location
+    @Environment(\.layoutWidth) private var width
 
     var body: some View {
+        Group {
+            if width == .wide { wide } else { compact }
+        }
+        .background(
+            Color.black.opacity(0.45)
+                .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 1) }
+                .ignoresSafeArea()
+        )
+    }
+
+    private var wide: some View {
         HStack(spacing: 18) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle().strokeBorder(Theme.accent.opacity(0.7), lineWidth: 1)
-                    Circle().strokeBorder(Theme.hairline, lineWidth: 1).padding(6)
-                    Image(systemName: "scope")
-                        .font(.system(size: 17, weight: .light))
-                        .foregroundStyle(Theme.accent)
-                }
-                .frame(width: 38, height: 38)
+                logo(size: 38)
                 // With the subtitle when it fits, else the name alone.
                 ViewThatFits(in: .horizontal) {
                     brand("scopeOS", subtitle: true)
@@ -226,63 +308,110 @@ struct HeaderBar: View {
 
             Spacer()
 
-            Button {
-                Appearance.shared.nightVision.toggle()
-            } label: {
-                Image(systemName: Appearance.shared.nightVision ? "moon.fill" : "moon")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 32, height: 32)
-                    .background(Theme.accent.opacity(Appearance.shared.nightVision ? 0.2 : 0.06), in: RoundedRectangle(cornerRadius: 3))
-                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.accent.opacity(0.35)))
-            }
-            .buttonStyle(.plain)
-            .help("Night vision: dim red display that keeps your eyes dark-adapted (⇧⌘N)")
-
-            TimelineView(.periodic(from: .now, by: 1)) { context in
-                StatusPill(label: phaseLabel(at: context.date), color: phaseColor(at: context.date),
-                           pulsing: model.phase == .connected && !model.isLinkStale(at: context.date))
-                    .help(linkHelp(at: context.date))
-                    .fixedSize()
-            }
-            if model.phase == .connected {
-                Button {
-                    model.stopTelescope()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("STOP")
-                            .font(Theme.display(17))
-                            .tracking(2.4)
-                            .padding(.top, 3)
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(Theme.danger, in: RoundedRectangle(cornerRadius: 3))
-                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.white.opacity(0.25)).padding(2))
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.cancelAction)
-                .help("Stops any slew, GoTo or move in progress (shortcut: Esc).")
-            }
-            Button(model.isRunning ? "Disconnect" : "Connect") {
-                model.isRunning ? model.disconnect() : model.connect()
-            }
-            .keyboardShortcut(.defaultAction)
-            .controlSize(.large)
-            .fixedSize()
+            nightVisionButton
+            linkStatus
+            if model.phase == .connected { stopButton }
+            connectButton
         }
+        #if os(macOS)
         .padding(.leading, 84) // clear of the window's traffic-light buttons
+        #else
+        .padding(.leading, 20)
+        #endif
         .padding(.trailing, 20)
         .padding(.top, 10)
         .padding(.bottom, 12)
-        .background(
-            Color.black.opacity(0.45)
-                .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 1) }
-                .ignoresSafeArea()
-        )
+    }
+
+    /// Two rows; STOP is in the bar along the bottom of the window instead (`StopBar`).
+    private var compact: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                logo(size: 30)
+                brand("scopeOS", subtitle: false)
+                Spacer()
+                nightVisionButton
+                connectButton
+            }
+            HStack(spacing: 10) {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    clocks(at: context.date, utc: false)
+                }
+                Spacer()
+                linkStatus
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
+    }
+
+    private func logo(size: CGFloat) -> some View {
+        ZStack {
+            Circle().strokeBorder(Theme.accent.opacity(0.7), lineWidth: 1)
+            Circle().strokeBorder(Theme.hairline, lineWidth: 1).padding(size * 6 / 38)
+            Image(systemName: "scope")
+                .font(.system(size: size * 17 / 38, weight: .light))
+                .foregroundStyle(Theme.accent)
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var nightVisionButton: some View {
+        Button {
+            Appearance.shared.nightVision.toggle()
+        } label: {
+            Image(systemName: Appearance.shared.nightVision ? "moon.fill" : "moon")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 32, height: 32)
+                .background(Theme.accent.opacity(Appearance.shared.nightVision ? 0.2 : 0.06), in: RoundedRectangle(cornerRadius: 3))
+                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.accent.opacity(0.35)))
+                .contentShape(Rectangle().inset(by: -6)) // a 44-point target for a finger
+        }
+        .buttonStyle(.plain)
+        .help("Night vision: dim red display that keeps your eyes dark-adapted (⇧⌘N)")
+    }
+
+    private var linkStatus: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            StatusPill(label: phaseLabel(at: context.date), color: phaseColor(at: context.date),
+                       pulsing: model.phase == .connected && !model.isLinkStale(at: context.date))
+                .help(linkHelp(at: context.date))
+                .fixedSize()
+        }
+    }
+
+    private var stopButton: some View {
+        Button {
+            model.stopTelescope()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 11, weight: .bold))
+                Text("STOP")
+                    .font(Theme.display(17))
+                    .tracking(2.4)
+                    .padding(.top, 3)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 7)
+            .background(Theme.danger, in: RoundedRectangle(cornerRadius: 3))
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.white.opacity(0.25)).padding(2))
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(.cancelAction)
+        .help("Stops any slew, GoTo or move in progress (shortcut: Esc).")
+    }
+
+    private var connectButton: some View {
+        Button(model.isRunning ? "Disconnect" : "Connect") {
+            model.isRunning ? model.disconnect() : model.connect()
+        }
+        .keyboardShortcut(.defaultAction)
+        .controlSize(.large)
+        .fixedSize()
     }
 
     private func brand(_ name: String, subtitle: Bool) -> some View {
@@ -381,76 +510,22 @@ private struct Clock: View {
 
 struct ConnectionPanel: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
 
+    /// One row when there's room; else the connection kind, its settings and the simulator each on their own.
     var body: some View {
-        @Bindable var model = model
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Picker("Connection", selection: $model.kind) {
-                    ForEach(MonitorModel.Kind.allCases) { Text($0.title).tag($0) }
+            if width == .wide {
+                HStack(spacing: 12) {
+                    kindPicker
+                    settings
+                    Spacer()
+                    simulatorButton
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(maxWidth: 460)
-                .disabled(model.isRunning)
-
-                Group {
-                    switch model.kind {
-                    case .wifiModule:
-                        TextField("Host", text: $model.wifiHost).frame(width: 150)
-                        TextField("Port", text: $model.wifiPort).frame(width: 64)
-                        if model.finding {
-                            Button("Cancel") { model.cancelFind() }
-                                .help("Stop searching")
-                            ProgressView().controlSize(.small)
-                            if let started = model.findStarted {
-                                TimelineView(.periodic(from: .now, by: 1)) { context in
-                                    Text("\(Int(context.date.timeIntervalSince(started))) s")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(Theme.textTertiary)
-                                }
-                            }
-                        } else {
-                            Button {
-                                model.findTelescope()
-                            } label: {
-                                Label("Find", systemImage: "magnifyingglass")
-                            }
-                            .help("Search this network (Wi-Fi and Ethernet) for the telescope's WiFi module")
-                        }
-                        if model.foundTelescopes.count > 1 {
-                            Menu("\(model.foundTelescopes.count) found") {
-                                ForEach(model.foundTelescopes, id: \.self) { telescope in
-                                    Button(telescope.host) { model.useFoundTelescope(telescope) }
-                                }
-                            }
-                            .fixedSize()
-                        }
-                    case .networkHandController:
-                        TextField("Host", text: $model.networkHost).frame(width: 150)
-                        TextField("Port", text: $model.networkPort).frame(width: 64)
-                    case .usbHandController:
-                        Picker("Port", selection: $model.serialPath) {
-                            if model.availablePorts.isEmpty { Text("No serial ports found").tag("") }
-                            ForEach(model.availablePorts, id: \.self) { Text($0).tag($0) }
-                        }
-                        .labelsHidden()
-                        .frame(width: 260)
-                        Button("Refresh", systemImage: "arrow.clockwise") { model.refreshPorts() }
-                    }
-                }
-                .textFieldStyle(.roundedBorder)
-                .disabled(model.isRunning)
-
-                Spacer()
-                if BuildMode.isDebug {
-                Button(model.simulatorState == .off ? "Start Simulator" : "Stop Simulator",
-                       systemImage: model.simulatorState == .off ? "play.circle" : "stop.circle") {
-                    model.simulatorState == .off ? model.startSimulator() : model.stopSimulator()
-                }
-                .disabled(model.simulatorState == .starting)
-                .help("Runs a pretend mount inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)).")
-                }
+            } else {
+                kindPicker
+                HStack(spacing: 10) { settings }
+                simulatorButton
             }
 
             Text(model.kind.help)
@@ -466,6 +541,87 @@ struct ConnectionPanel: View {
         }
         .padding(14)
         .panel()
+    }
+
+    /// Fixed on the Mac; on a phone the host field gives way to the Find button and its progress.
+    private var hostWidth: (min: CGFloat, max: CGFloat) { width == .wide ? (150, 150) : (90, 150) }
+
+    @ViewBuilder private var kindPicker: some View {
+        @Bindable var model = model
+        Picker("Connection", selection: $model.kind) {
+            ForEach(MonitorModel.Kind.available) { Text($0.title).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: width == .wide ? 460 : .infinity)
+        .disabled(model.isRunning)
+    }
+
+    @ViewBuilder private var settings: some View {
+        @Bindable var model = model
+        Group {
+            switch model.kind {
+            case .wifiModule:
+                TextField("Host", text: $model.wifiHost).frame(minWidth: hostWidth.min, maxWidth: hostWidth.max)
+                TextField("Port", text: $model.wifiPort).frame(width: 64)
+                if model.finding {
+                    Button("Cancel") { model.cancelFind() }
+                        .help("Stop searching")
+                    ProgressView().controlSize(.small)
+                    if let started = model.findStarted {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            Text("\(Int(context.date.timeIntervalSince(started))) s")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(Theme.textTertiary)
+                        }
+                    }
+                } else {
+                    Button {
+                        model.findTelescope()
+                    } label: {
+                        Label("Find", systemImage: "magnifyingglass")
+                    }
+                    .help("Search this network (Wi-Fi and Ethernet) for the telescope's WiFi module")
+                }
+                if model.foundTelescopes.count > 1 {
+                    Menu("\(model.foundTelescopes.count) found") {
+                        ForEach(model.foundTelescopes, id: \.self) { telescope in
+                            Button(telescope.host) { model.useFoundTelescope(telescope) }
+                        }
+                    }
+                    .fixedSize()
+                }
+            case .networkHandController:
+                TextField("Host", text: $model.networkHost).frame(minWidth: hostWidth.min, maxWidth: hostWidth.max)
+                TextField("Port", text: $model.networkPort).frame(width: 64)
+            case .usbHandController:
+                Picker("Port", selection: $model.serialPath) {
+                    if model.availablePorts.isEmpty { Text("No serial ports found").tag("") }
+                    ForEach(model.availablePorts, id: \.self) { Text($0).tag($0) }
+                }
+                .labelsHidden()
+                .frame(width: 260)
+                Button("Refresh", systemImage: "arrow.clockwise") { model.refreshPorts() }
+            }
+        }
+        .textFieldStyle(.roundedBorder)
+        #if os(iOS)
+        .keyboardType(.numbersAndPunctuation) // addresses and ports
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        #endif
+        .disabled(model.isRunning)
+    }
+
+    @ViewBuilder private var simulatorButton: some View {
+        if BuildMode.isDebug {
+            Button(model.simulatorState == .off ? "Start Simulator" : "Stop Simulator",
+                   systemImage: model.simulatorState == .off ? "play.circle" : "stop.circle") {
+                model.simulatorState == .off ? model.startSimulator() : model.stopSimulator()
+            }
+            .disabled(model.simulatorState == .starting)
+            .help("Runs a pretend mount inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)).")
+        }
     }
 }
 
@@ -488,5 +644,41 @@ struct FooterBar: View {
         .padding(.vertical, 9)
         .background(Color.black.opacity(0.35))
         .overlay(alignment: .top) { Rectangle().fill(Theme.hairline).frame(height: 1) }
+    }
+}
+
+/// STOP on iPhone and iPad (in the compact layouts): full width along the bottom, above the home indicator, on every
+/// tab and never scrolled away.
+struct StopBar: View {
+    @Environment(MonitorModel.self) private var model
+
+    var body: some View {
+        Button {
+            model.stopTelescope()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 15, weight: .bold))
+                Text("STOP TELESCOPE")
+                    .font(Theme.display(22))
+                    .tracking(3)
+                    .padding(.top, 3)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Theme.danger, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.25)).padding(2))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(.cancelAction)
+        .accessibilityHint("Stops any slew, GoTo or move in progress")
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Color.black.opacity(0.45)
+                .overlay(alignment: .top) { Rectangle().fill(Theme.hairline).frame(height: 1) }
+                .ignoresSafeArea()
+        )
     }
 }

@@ -4,17 +4,26 @@ import SwiftUI
 /// The sky around where the telescope points, from its angles, your location and the time: stars, constellations,
 /// the Moon and planets, the Sun's keep-out zone. Click anything (or any point) to see what it is and go there.
 struct SkyTab: View {
+    @Environment(\.layoutWidth) private var width
     @State private var view = SkyMapView()
     @State private var selection: SkySelection?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            SkyMapCard(view: $view, selection: $selection)
-            VStack(spacing: 16) {
+        if width == .narrow {
+            VStack(spacing: 12) {
+                SkyMapCard(view: $view, selection: $selection)
                 SkySelectionCard(view: $view, selection: $selection)
                 ControlCard()
             }
-            .frame(width: 330)
+        } else {
+            HStack(alignment: .top, spacing: 16) {
+                SkyMapCard(view: $view, selection: $selection)
+                VStack(spacing: 16) {
+                    SkySelectionCard(view: $view, selection: $selection)
+                    ControlCard()
+                }
+                .frame(width: 330)
+            }
         }
     }
 }

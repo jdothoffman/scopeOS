@@ -1,4 +1,3 @@
-import AppKit
 import ScopeKit
 import SwiftUI
 
@@ -46,6 +45,8 @@ struct Readout: View {
                     .font(Theme.numeric(32))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7) // a little smaller rather than wrapping, on a phone
                 if let detail {
                     Text(detail)
                         .font(Theme.display(17))
@@ -76,21 +77,24 @@ struct InfoRow: View {
 
 struct PointingCard: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
     let status: MountStatus?
 
     var body: some View {
         @Bindable var model = model
         Card(title: "Pointing", systemImage: "scope") {
             if let eq = status?.equatorial {
-                HStack(spacing: 40) {
+                HStack(spacing: width == .narrow ? 20 : 40) {
                     Readout(label: "Right ascension", value: SkyFormat.rightAscension(eq.raHours))
                     Readout(label: "Declination", value: SkyFormat.declination(eq.decDegrees))
                 }
             } else if status?.protocolKind == .aux {
-                Text("Motor angles over WiFi. RA/Dec needs the USB connection to the hand controller.")
+                Text(MonitorModel.Kind.available.contains(.usbHandController)
+                     ? "Motor angles over WiFi. RA/Dec needs the USB connection to the hand controller."
+                     : "Motor angles over WiFi. RA/Dec needs the hand controller's USB connection, from a Mac.")
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(width == .wide ? 1 : 2)
                     .minimumScaleFactor(0.85)
             }
 
@@ -333,6 +337,7 @@ struct ControlCard: View {
                                 .help("Enable up/down (needs movement on)")
                         }
                         .toggleStyle(.switch)
+                        .lineLimit(1) // iOS switches are wider; the labels mustn't break mid-word
                     }
                     Toggle("Lock while the Sun is up", isOn: $model.sunLockWhileUp)
                         .toggleStyle(.switch)
@@ -390,7 +395,7 @@ struct ControlCard: View {
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+                .onReceive(NotificationCenter.default.publisher(for: Platform.resignActive)) { _ in
                     model.releaseArrow()
                 }
             } else {
@@ -782,16 +787,23 @@ struct TrafficLogView: View {
                     HStack(spacing: 6) {
                         Button("Copy") { copyLog() }
                             .help("Copy the whole log as text")
+                        #if os(macOS)
                         Button("Save…") { saveLog() }
                             .help("Save the whole log as a text file")
                         if let file = model.logFileURL {
                             Button {
-                                NSWorkspace.shared.activateFileViewerSelecting([file])
+                                Platform.revealInFinder(file)
                             } label: {
                                 Image(systemName: "folder")
                             }
                             .help("Everything since launch is also kept in \(file.path)")
                         }
+                        #else
+                        // Everything since launch, from the file (also in the Files app, scopeOS › Logs).
+                        if let file = model.logFileURL {
+                            ShareLink(item: file) { Image(systemName: "square.and.arrow.up") }
+                        }
+                        #endif
                         Button("Clear") { model.clearLog() }
                     }
                     .controlSize(.small)
@@ -833,10 +845,10 @@ struct TrafficLogView: View {
     }
 
     private func copyLog() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(model.logText, forType: .string)
+        Platform.copy(model.logText)
     }
 
+    #if os(macOS)
     private func saveLog() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "scopeOS log \(TrafficLogFile.fileFormatter.string(from: .now)).txt"
@@ -844,6 +856,7 @@ struct TrafficLogView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         try? model.logText.write(to: url, atomically: true, encoding: .utf8)
     }
+    #endif
 
     private func color(_ direction: TrafficEntry.Direction) -> Color {
         switch direction {

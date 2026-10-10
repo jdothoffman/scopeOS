@@ -232,6 +232,61 @@ struct MonitorModelTests {
         #expect(model.driving == nil)
     }
 
+    /// iOS: leaving the screen stops a drive and closes the connection; coming back reconnects with the same
+    /// calibration, and the drive doesn't pick up again by itself.
+    @Test func goingToTheBackgroundStopsADriveAndComingBackReconnects() async throws {
+        let rig = try await driveHomeUnderWay()
+        defer { rig.tearDown() }
+        let model = rig.model
+        let calibration = try #require(model.calibration)
+
+        await model.pause()
+        #expect(stopWasSent(model))
+        #expect(model.driving == nil)
+        #expect(!model.isRunning)
+        #expect(model.phase == .idle)
+        #expect(model.calibration == calibration, "kept while paused")
+
+        model.resume()
+        try await rig.waitUntil { model.phase == .connected }
+        _ = try await rig.freshStatus()
+        #expect(model.calibration == calibration)
+        #expect(model.driving == nil, "a drive needs asking for again")
+        #expect(!model.movementEnabled, "debug builds need the switch again, as after any reconnect")
+    }
+
+    /// iOS: declining the home position isn't asked again after a trip to the background.
+    @Test func comingBackDoesNotAskAboutTheHomePositionAgain() async throws {
+        let rig = try await Rig(home: AxisCalibration(azimuthOffset: -3, altitudeOffset: -2))
+        defer { rig.tearDown() }
+        let model = rig.model
+        #expect(model.offerHome)
+        model.offerHome = false
+
+        await model.pause()
+        model.resume()
+        try await rig.waitUntil { model.phase == .connected }
+        _ = try await rig.freshStatus()
+        #expect(!model.offerHome)
+    }
+
+    /// iOS: coming back while the stops are still going out keeps the connection open.
+    @Test func comingBackQuicklyKeepsTheConnection() async throws {
+        let rig = try await driveHomeUnderWay()
+        defer { rig.tearDown() }
+        let model = rig.model
+
+        let pausing = Task { await model.pause() }
+        await Task.yield() // `pause()` runs until it waits for the stop to go out
+        #expect(model.driving == nil)
+        model.resume()
+        await pausing.value
+        #expect(stopWasSent(model))
+        #expect(model.driving == nil)
+        #expect(model.isRunning)
+        #expect(model.phase == .connected)
+    }
+
     /// An abandoned connection attempt that only gives up after a new connection is made mustn't tear the new one
     /// down (that left Stop doing nothing).
     @Test func aConnectAttemptAbandonedByDisconnectLeavesTheNextConnectionAlone() async throws {
