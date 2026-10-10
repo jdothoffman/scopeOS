@@ -11,8 +11,7 @@ final class CameraModel {
     static let recordLimits = [0, 30, 60, 90, 120, 180] // seconds; 0 = until stopped
     static let defaultTelescope = "Celestron NexStar 6SE (150 mm, f/10)"
     static let defaultFocalLength = 1500
-    static let defaultRecordingFolder = FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("scopeOS", isDirectory: true)
+    static let defaultRecordingFolder = Platform.recordingsFolder
 
     private(set) var cameras: [CaptureCamera] = []
     var selectedCameraID: String? {

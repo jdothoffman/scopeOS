@@ -1,4 +1,3 @@
-import AppKit
 import ScopeKit
 import SwiftUI
 
@@ -390,7 +389,7 @@ struct ControlCard: View {
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+                .onReceive(NotificationCenter.default.publisher(for: Platform.resignActive)) { _ in
                     model.releaseArrow()
                 }
             } else {
@@ -781,16 +780,23 @@ struct TrafficLogView: View {
                     HStack(spacing: 6) {
                         Button("Copy") { copyLog() }
                             .help("Copy the whole log as text")
+                        #if os(macOS)
                         Button("Save…") { saveLog() }
                             .help("Save the whole log as a text file")
                         if let file = model.logFileURL {
                             Button {
-                                NSWorkspace.shared.activateFileViewerSelecting([file])
+                                Platform.revealInFinder(file)
                             } label: {
                                 Image(systemName: "folder")
                             }
                             .help("Everything since launch is also kept in \(file.path)")
                         }
+                        #else
+                        // Everything since launch, from the file (also in the Files app, scopeOS › Logs).
+                        if let file = model.logFileURL {
+                            ShareLink(item: file) { Image(systemName: "square.and.arrow.up") }
+                        }
+                        #endif
                         Button("Clear") { model.clearLog() }
                     }
                     .controlSize(.small)
@@ -832,10 +838,10 @@ struct TrafficLogView: View {
     }
 
     private func copyLog() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(model.logText, forType: .string)
+        Platform.copy(model.logText)
     }
 
+    #if os(macOS)
     private func saveLog() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "scopeOS log \(TrafficLogFile.fileFormatter.string(from: .now)).txt"
@@ -843,6 +849,7 @@ struct TrafficLogView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         try? model.logText.write(to: url, atomically: true, encoding: .utf8)
     }
+    #endif
 
     private func color(_ direction: TrafficEntry.Direction) -> Color {
         switch direction {

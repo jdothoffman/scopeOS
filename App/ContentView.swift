@@ -7,6 +7,15 @@ enum AppTab: String, CaseIterable, Identifiable {
 
     var id: Self { self }
 
+    /// The camera needs a Mac for now (an iPad can take a USB camera too: #36).
+    static var available: [AppTab] {
+        #if os(macOS)
+        allCases
+        #else
+        [.telescope, .sky, .setup]
+        #endif
+    }
+
     var title: String {
         switch self {
         case .telescope: "Telescope"
@@ -71,7 +80,9 @@ struct ContentView: View {
         .foregroundStyle(Theme.textPrimary)
         .tint(Theme.accent)
         .colorMultiply(Theme.windowFilter)
+        #if os(macOS)
         .frame(minWidth: 1080, minHeight: 720)
+        #endif
         .onChange(of: tab) {
             // A held arrow vanishes with its tab before it can see the mouse button come up: stop the move now.
             model.releaseArrow()
@@ -146,7 +157,7 @@ private struct TabBar: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(AppTab.allCases) { item in
+            ForEach(AppTab.available) { item in
                 Button {
                     tab = item
                 } label: {
@@ -387,7 +398,7 @@ struct ConnectionPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
                 Picker("Connection", selection: $model.kind) {
-                    ForEach(MonitorModel.Kind.allCases) { Text($0.title).tag($0) }
+                    ForEach(MonitorModel.Kind.available) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()

@@ -1,6 +1,4 @@
 @preconcurrency import AVFoundation
-import AppKit
-import CoreImage
 import ScopeCapture
 import ScopeKit
 import SwiftUI
@@ -58,7 +56,11 @@ struct CameraCard: View {
                             .help("At this mode's full frame rate, keeping 2 GB free. Recordings that won't fit don't start, and a recording stops if free space drops under 2 GB.")
                     }
                     Toggle("Crosshair", isOn: $camera.showCrosshair)
+                        #if os(macOS)
                         .toggleStyle(.checkbox)
+                        #else
+                        .fixedSize()
+                        #endif
                     Spacer()
                     RecordButton()
                 }
@@ -80,10 +82,15 @@ struct CameraCard: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Spacer()
+                        #if os(macOS)
                         Button("Show in Finder", systemImage: "folder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([recording.url])
+                            Platform.revealInFinder(recording.url)
                         }
                         .controlSize(.small)
+                        #else
+                        ShareLink(item: recording.url) { Label("Share", systemImage: "square.and.arrow.up") }
+                            .controlSize(.small)
+                        #endif
                     }
                 }
 
@@ -333,6 +340,7 @@ struct RecordingSettingsCard: View {
                     TextField("Your name", text: $camera.observerName)
                 }
                 LabeledContent("Folder") {
+                    #if os(macOS)
                     HStack(spacing: 6) {
                         Text(camera.recordingFolder.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
                             .lineLimit(1)
@@ -345,6 +353,11 @@ struct RecordingSettingsCard: View {
                         }
                     }
                     .controlSize(.small)
+                    #else
+                    // Fixed on iOS: a folder chosen elsewhere would need security-scoped access kept between launches.
+                    Text("Files › scopeOS › Recordings")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    #endif
                 }
                 Text("Written into each recording's SER header and the notes file beside it.")
                     .font(.caption)
@@ -356,6 +369,7 @@ struct RecordingSettingsCard: View {
         }
     }
 
+    #if os(macOS)
     private func chooseFolder() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
@@ -366,6 +380,7 @@ struct RecordingSettingsCard: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         camera.customRecordingFolder = url
     }
+    #endif
 }
 
 private struct RecordButton: View {
@@ -432,63 +447,6 @@ private struct Crosshair: View {
             context.stroke(lines, with: .color(Theme.accent.opacity(0.45)), lineWidth: 1)
             let ring = Path(ellipseIn: CGRect(x: center.x - 12, y: center.y - 12, width: 24, height: 24))
             context.stroke(ring, with: .color(Theme.accent.opacity(0.7)), lineWidth: 1)
-        }
-    }
-}
-
-/// The camera's live picture, drawn by AVFoundation. Night vision runs it through a red filter.
-struct CameraPreview: NSViewRepresentable {
-    let session: AVCaptureSession
-    let nightVision: Bool
-
-    func makeNSView(context: Context) -> PreviewView { PreviewView(session: session) }
-
-    func updateNSView(_ view: PreviewView, context: Context) {
-        view.nightVision = nightVision
-    }
-
-    final class PreviewView: NSView {
-        private let previewLayer: AVCaptureVideoPreviewLayer
-
-        var nightVision = false {
-            didSet {
-                guard nightVision != oldValue else { return }
-                previewLayer.filters = nightVision ? [Self.redFilter()] : nil
-            }
-        }
-
-        init(session: AVCaptureSession) {
-            previewLayer = AVCaptureVideoPreviewLayer(session: session)
-            super.init(frame: .zero)
-            layer = CALayer()
-            wantsLayer = true
-            layerUsesCoreImageFilters = true
-            layer?.backgroundColor = NSColor.black.cgColor
-            previewLayer.videoGravity = .resizeAspect
-            layer?.addSublayer(previewLayer)
-        }
-
-        @available(*, unavailable)
-        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-        override func layout() {
-            super.layout()
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            previewLayer.frame = bounds
-            CATransaction.commit()
-        }
-
-        /// Brightness into the red channel only, slightly dimmed. Kept even though the window's night filter is
-        /// multiplied over everything: that isn't guaranteed to reach this AppKit layer, and where it does it leaves
-        /// red-only content unchanged (see `Theme.nightFilter`).
-        static func redFilter() -> CIFilter {
-            let filter = CIFilter(name: "CIColorMatrix")!
-            filter.setValue(CIVector(x: 0.24, y: 0.47, z: 0.09, w: 0), forKey: "inputRVector")
-            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputGVector")
-            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputBVector")
-            filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
-            return filter
         }
     }
 }

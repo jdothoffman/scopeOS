@@ -1,7 +1,9 @@
 // Draws scopeOS's app icon (a telescope under a night sky, aimed at Polaris) and writes every size the asset
-// catalog needs.
+// catalog needs: the macOS sizes, and one full-bleed 1024-pixel icon for iOS (which rounds the corners itself).
 //   swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset
 import AppKit
+import ImageIO
+import UniformTypeIdentifiers
 
 let canvas: CGFloat = 1024
 
@@ -9,10 +11,12 @@ func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColo
     CGColor(srgbRed: r, green: g, blue: b, alpha: a)
 }
 
-func drawIcon(in cg: CGContext) {
+/// `rounded` is false for iOS, which rounds the corners itself.
+func drawIcon(in cg: CGContext, rounded: Bool = true) {
     // macOS icon grid: an 824-point rounded square, centred, with a soft shadow.
     let body = CGRect(x: 100, y: 100, width: 824, height: 824)
-    let shape = CGPath(roundedRect: body, cornerWidth: 185, cornerHeight: 185, transform: nil)
+    let corner: CGFloat = rounded ? 185 : 0
+    let shape = CGPath(roundedRect: body, cornerWidth: corner, cornerHeight: corner, transform: nil)
     cg.saveGState()
     cg.setShadow(offset: CGSize(width: 0, height: -12), blur: 24, color: color(0, 0, 0, 0.45))
     cg.addPath(shape)
@@ -157,6 +161,22 @@ func render(pixels: Int) -> Data {
     return rep.representation(using: .png, properties: [:])!
 }
 
+/// iOS: the same picture as a square scaled to fill the canvas, opaque (the App Store refuses icons with an alpha
+/// channel).
+func renderFullBleed(pixels: Int) -> Data {
+    let cg = CGContext(data: nil, width: pixels, height: pixels, bitsPerComponent: 8, bytesPerRow: 0,
+                       space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+    cg.interpolationQuality = .high
+    cg.scaleBy(x: CGFloat(pixels) / 824, y: CGFloat(pixels) / 824)
+    cg.translateBy(x: -100, y: -100)
+    drawIcon(in: cg, rounded: false)
+    let data = NSMutableData()
+    let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil)!
+    CGImageDestinationAddImage(destination, cg.makeImage()!, nil)
+    CGImageDestinationFinalize(destination)
+    return data as Data
+}
+
 let output = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "AppIcon.appiconset", isDirectory: true)
 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 
@@ -168,6 +188,8 @@ for points in [16, 32, 128, 256, 512] {
         images.append(["idiom": "mac", "size": "\(points)x\(points)", "scale": "\(scale)x", "filename": name])
     }
 }
+try renderFullBleed(pixels: 1024).write(to: output.appendingPathComponent("icon_ios_1024.png"))
+images.append(["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_ios_1024.png"])
 let contents: [String: Any] = ["images": images, "info": ["author": "xcode", "version": 1]]
 try JSONSerialization.data(withJSONObject: contents, options: [.prettyPrinted, .sortedKeys])
     .write(to: output.appendingPathComponent("Contents.json"))

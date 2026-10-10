@@ -1,4 +1,3 @@
-import AppKit
 import ScopeKit
 import SwiftUI
 
@@ -57,7 +56,7 @@ struct FocusCard: View {
             Divider().overlay(Color.white.opacity(0.06))
             FocusAid()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: Platform.resignActive)) { _ in
             model.releaseFocus()
         }
     }

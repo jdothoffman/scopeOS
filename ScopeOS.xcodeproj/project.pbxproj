@@ -8,28 +8,52 @@
 
 /* Begin PBXBuildFile section */
 		02A079C31FC167370FADBC28 /* TonightPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */; };
+		0337B530741E4DCA55044894 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8557BBCC102D40F97DE2A3B6 /* Platform.swift */; };
 		03BE31124B066018B5CCDBC3 /* SkyMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F0C3A00411E265EE8359D0 /* SkyMapTests.swift */; };
 		06A0C3B4FCEED4AA5DDEA5EC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30ABAA3175E3553C4F24D81 /* Theme.swift */; };
 		09A4BA6FAE6842BB9A8BDE83 /* TrafficLogFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */; };
+		1097F61BAD7590B6D92925E8 /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
 		12335F93DD3F1410C5970126 /* NexStarSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = 40C9FE93024BC8A50F5A1BC8 /* NexStarSimulator */; };
 		25C274E91104C842D0313E2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 37EC60E8C1FE19414C83FF1E /* Assets.xcassets */; };
+		2606C0F261832E173B512903 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
+		2E6A64B9D804D81D84B036AE /* CameraCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94DEFEBA908068B100AAEA /* CameraCard.swift */; };
+		346ACD6AE50D13CBCEDB8AF7 /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163291358AE3B6DDE5305D37 /* Cards.swift */; };
 		34B22E4B8730A1B548C5A21D /* TonightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D9C3EA0992169ECD9ECBE6 /* TonightTests.swift */; };
 		3521D34C16B25F945DD0C8BB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30ABAA3175E3553C4F24D81 /* Theme.swift */; };
+		3B2CDF2D650179160C414B01 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 720036D9D1CAF4C243CF0687 /* CameraPreview.swift */; };
+		3CE6A262AAE94A576AE087D7 /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
 		4155614AD3B3DE4F44242BAF /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
 		415B822B602B23146AFEB5FB /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
 		4BE28461D35F9AA8BFAD52A4 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3196804302A09DD9BA01E8B7 /* ScopeKit */; };
 		4D0425C6B0AFD82E48B0994E /* TonightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */; };
 		510063DC6F305C432A1A8DB8 /* TrafficLogFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */; };
+		58645CC47A6A92580D3C8830 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDE294B68D6001B04290F78 /* ScopeOSApp.swift */; };
 		5C7EB2FB2B223D6AC1512906 /* FocusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E192FA5AF1210039E82C12 /* FocusCard.swift */; };
+		65376CD1BECED1EB719CF7D4 /* TonightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */; };
 		654D6CFC7A7DD5302CBD5C61 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 677F48065488F4B191BF711C /* ScopeKit */; };
+		6B2BA8CC923D581AD2B975F1 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 95FA58D34CACD67AE9785126 /* ScopeKit */; };
+		7133AD04279BA61B9863DAFB /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 720036D9D1CAF4C243CF0687 /* CameraPreview.swift */; };
 		71EC58F48DDA5757E5D07807 /* SnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */; };
+		75FBB5354DBE0EF5D08A18B2 /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
+		79E57933A56B26B0962AB327 /* ScopeCapture in Frameworks */ = {isa = PBXBuildFile; productRef = C0E76250125FBBE8DAAA0071 /* ScopeCapture */; };
 		815E1799582207A0262A3D82 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
+		88E7A8D3C99879713D7713EC /* TonightPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */; };
+		8976FEF224F1AA67988188AC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30ABAA3175E3553C4F24D81 /* Theme.swift */; };
 		918329A2A96E54F6F6D34EFF /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163291358AE3B6DDE5305D37 /* Cards.swift */; };
+		935016CB2003D71BC6FE8EE7 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8557BBCC102D40F97DE2A3B6 /* Platform.swift */; };
+		94E506EF9C3F113114D31F85 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
+		95230455AC492CE27B412330 /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873763520B45A6F2D418A8A /* CameraModel.swift */; };
+		9640712D83EC1FE22C4551F1 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8557BBCC102D40F97DE2A3B6 /* Platform.swift */; };
+		A194A64DA923D47CA2F4FCC5 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */; };
+		A68DC5968ACDDDE2E00BEC68 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
 		AC1A60C6F8A86D0DE26787B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
 		AFFB6C600AAEBBC3DBFF6EC0 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
 		B3CEFB3CD2737738CBDF7EAB /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
 		B536BA3CA91BADCAA3081A16 /* InstrumentTapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */; };
 		B5520ED81E7D82FBEE4C4673 /* FocusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E192FA5AF1210039E82C12 /* FocusCard.swift */; };
+		B813CA74B5E4765954F1F730 /* NexStarSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = 8FFBED25AE447DA70771E4E2 /* NexStarSimulator */; };
+		B96F0695E5D3A76B76E03874 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 37EC60E8C1FE19414C83FF1E /* Assets.xcassets */; };
+		BADE7E0C182821724674EE67 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D49FD8E55E9AB4FCB7CB00 /* CameraPreview.swift */; };
 		BB005BAA44376A82122033B0 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
 		BD4826D81C02C4CE393DF4E7 /* ScopeCapture in Frameworks */ = {isa = PBXBuildFile; productRef = D19B85455CEB68DBE7448BDF /* ScopeCapture */; };
 		BE99E3D486C471F961F8FA52 /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
@@ -37,15 +61,18 @@
 		C01252605EFD302CE42C8A50 /* NexStarSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = F0538FD6028C79E94B235CDB /* NexStarSimulator */; };
 		C15C39E9CB48D1C503698498 /* CameraCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94DEFEBA908068B100AAEA /* CameraCard.swift */; };
 		C2F373CBF8A1654B2F5A556F /* CameraCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94DEFEBA908068B100AAEA /* CameraCard.swift */; };
+		C5996A2BDBCD93F2E4BBD684 /* InstrumentTapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */; };
 		C7472D8809E2035F770D3E30 /* MonitorModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289D54D7269DF3E775C7797E /* MonitorModelTests.swift */; };
-		C8BB056BA9C074E8835887C9 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85657A0E8A585D0109040421 /* ScopeOSApp.swift */; };
+		CC3DFDC34DF110CFFD875559 /* BuildMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3C4E74C8DBE15E3482A114 /* BuildMode.swift */; };
 		D954DF709AF3F99AB7915FD6 /* BuildMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3C4E74C8DBE15E3482A114 /* BuildMode.swift */; };
+		DBB37730E366F25A30619F57 /* TrafficLogFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */; };
 		E1869C0C3F522858FE5733D7 /* NightVisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021C8BF5DB2C4EAE1BECCBE2 /* NightVisionTests.swift */; };
 		E1E1DE7E50BF53AF14270790 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
 		E43126B818E8F8C51323E69F /* InstrumentTapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */; };
 		E80A3AE8780958F01E0AD01D /* ScopeCapture in Frameworks */ = {isa = PBXBuildFile; productRef = 26829DCCC075BB4539AB4DD8 /* ScopeCapture */; };
 		E80A5C72788153B93474E0E2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
 		EB8CE0DA4D292CA3AEDD331F /* BuildMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3C4E74C8DBE15E3482A114 /* BuildMode.swift */; };
+		EC3B2B56AB1EA64821790A04 /* FocusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E192FA5AF1210039E82C12 /* FocusCard.swift */; };
 		EE6559C66D96013134185AB4 /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
 		F033D50282722920F60AE33A /* CameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A873763520B45A6F2D418A8A /* CameraModel.swift */; };
 		F094269050D4F17C1A59B4AA /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
@@ -65,13 +92,17 @@
 		289D54D7269DF3E775C7797E /* MonitorModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorModelTests.swift; sourceTree = "<group>"; };
 		37EC60E8C1FE19414C83FF1E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		39D9C3EA0992169ECD9ECBE6 /* TonightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonightTests.swift; sourceTree = "<group>"; };
+		45D49FD8E55E9AB4FCB7CB00 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeOSApp.swift; sourceTree = "<group>"; };
 		55E40567E709BABAA76D964E /* ScopeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScopeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		565860273E3FEF44D5F82627 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
+		720036D9D1CAF4C243CF0687 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		78E192FA5AF1210039E82C12 /* FocusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCard.swift; sourceTree = "<group>"; };
 		82A9D7A956D9399A2F78DF40 /* SkyMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyMap.swift; sourceTree = "<group>"; };
-		85657A0E8A585D0109040421 /* ScopeOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeOSApp.swift; sourceTree = "<group>"; };
+		8557BBCC102D40F97DE2A3B6 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
 		9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonightPlanner.swift; sourceTree = "<group>"; };
+		9DDE294B68D6001B04290F78 /* ScopeOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeOSApp.swift; sourceTree = "<group>"; };
 		A3486271D808CF46F47B5FED /* ScopeOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScopeOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3CF139BB9FFBB121C247422 /* ScopeOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ScopeOS.entitlements; sourceTree = "<group>"; };
 		A873763520B45A6F2D418A8A /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
@@ -79,6 +110,7 @@
 		B30ABAA3175E3553C4F24D81 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationModel.swift; sourceTree = "<group>"; };
 		C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorModel.swift; sourceTree = "<group>"; };
+		CB647A434829D5EA2C6FED3D /* ScopeOS-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "ScopeOS-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF3C4E74C8DBE15E3482A114 /* BuildMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildMode.swift; sourceTree = "<group>"; };
 		E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TonightCard.swift; sourceTree = "<group>"; };
 		F5F0C3A00411E265EE8359D0 /* SkyMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyMapTests.swift; sourceTree = "<group>"; };
@@ -105,12 +137,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CF96297C1E52912334EE96E0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6B2BA8CC923D581AD2B975F1 /* ScopeKit in Frameworks */,
+				B813CA74B5E4765954F1F730 /* NexStarSimulator in Frameworks */,
+				79E57933A56B26B0962AB327 /* ScopeCapture in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		07B042B71BACF5F351844A31 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				45D49FD8E55E9AB4FCB7CB00 /* CameraPreview.swift */,
+				9DDE294B68D6001B04290F78 /* ScopeOSApp.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
 		2AB34D06169099A1E20343B1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				CB647A434829D5EA2C6FED3D /* ScopeOS-iOS.app */,
 				55E40567E709BABAA76D964E /* ScopeOS.app */,
 				A3486271D808CF46F47B5FED /* ScopeOSTests.xctest */,
 			);
@@ -140,15 +192,26 @@
 				12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */,
 				C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */,
 				C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */,
+				8557BBCC102D40F97DE2A3B6 /* Platform.swift */,
 				A3CF139BB9FFBB121C247422 /* ScopeOS.entitlements */,
-				85657A0E8A585D0109040421 /* ScopeOSApp.swift */,
 				82A9D7A956D9399A2F78DF40 /* SkyMap.swift */,
 				B30ABAA3175E3553C4F24D81 /* Theme.swift */,
 				E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */,
 				9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */,
 				05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */,
+				07B042B71BACF5F351844A31 /* iOS */,
+				9B784F15F2B1A45AB2ADF366 /* macOS */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		9B784F15F2B1A45AB2ADF366 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				720036D9D1CAF4C243CF0687 /* CameraPreview.swift */,
+				51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */,
+			);
+			path = macOS;
 			sourceTree = "<group>";
 		};
 		B3726D83BE8825BB3CEA1BEF /* AppTests */ = {
@@ -176,6 +239,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6529BBD975E0FF3051E68513 /* ScopeOS-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 85A8CF407D31D670456030E9 /* Build configuration list for PBXNativeTarget "ScopeOS-iOS" */;
+			buildPhases = (
+				490910684D3F2486DF12EFEE /* Sources */,
+				04412D13D0F526FE1A977369 /* Resources */,
+				CF96297C1E52912334EE96E0 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ScopeOS-iOS";
+			packageProductDependencies = (
+				95FA58D34CACD67AE9785126 /* ScopeKit */,
+				8FFBED25AE447DA70771E4E2 /* NexStarSimulator */,
+				C0E76250125FBBE8DAAA0071 /* ScopeCapture */,
+			);
+			productName = "ScopeOS-iOS";
+			productReference = CB647A434829D5EA2C6FED3D /* ScopeOS-iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		67F3915DD10EAD6D2625A451 /* ScopeOSTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CC9C52FD5AD619819E4F028 /* Build configuration list for PBXNativeTarget "ScopeOSTests" */;
@@ -229,6 +314,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					6529BBD975E0FF3051E68513 = {
+						DevelopmentTeam = TRSF93SDY9;
+						ProvisioningStyle = Automatic;
+					};
 					67F3915DD10EAD6D2625A451 = {
 						ProvisioningStyle = Automatic;
 					};
@@ -257,11 +346,21 @@
 			targets = (
 				B76ABF0B1588F2AE9EBEB48A /* ScopeOS */,
 				67F3915DD10EAD6D2625A451 /* ScopeOSTests */,
+				6529BBD975E0FF3051E68513 /* ScopeOS-iOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		04412D13D0F526FE1A977369 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B96F0695E5D3A76B76E03874 /* Assets.xcassets in Resources */,
+				75FBB5354DBE0EF5D08A18B2 /* Features.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		13DEA2EB659E49F8D614FC1E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,6 +389,7 @@
 				EB8CE0DA4D292CA3AEDD331F /* BuildMode.swift in Sources */,
 				C2F373CBF8A1654B2F5A556F /* CameraCard.swift in Sources */,
 				F033D50282722920F60AE33A /* CameraModel.swift in Sources */,
+				7133AD04279BA61B9863DAFB /* CameraPreview.swift in Sources */,
 				BFB162188C24D39E8A3A601D /* Cards.swift in Sources */,
 				E80A5C72788153B93474E0E2 /* ContentView.swift in Sources */,
 				B5520ED81E7D82FBEE4C4673 /* FocusCard.swift in Sources */,
@@ -298,6 +398,7 @@
 				F094269050D4F17C1A59B4AA /* MonitorModel.swift in Sources */,
 				C7472D8809E2035F770D3E30 /* MonitorModelTests.swift in Sources */,
 				E1869C0C3F522858FE5733D7 /* NightVisionTests.swift in Sources */,
+				935016CB2003D71BC6FE8EE7 /* Platform.swift in Sources */,
 				AFFB6C600AAEBBC3DBFF6EC0 /* SkyMap.swift in Sources */,
 				03BE31124B066018B5CCDBC3 /* SkyMapTests.swift in Sources */,
 				71EC58F48DDA5757E5D07807 /* SnapshotTests.swift in Sources */,
@@ -317,18 +418,45 @@
 				D954DF709AF3F99AB7915FD6 /* BuildMode.swift in Sources */,
 				C15C39E9CB48D1C503698498 /* CameraCard.swift in Sources */,
 				F3248B78130529DC2A9EE77F /* CameraModel.swift in Sources */,
+				3B2CDF2D650179160C414B01 /* CameraPreview.swift in Sources */,
 				918329A2A96E54F6F6D34EFF /* Cards.swift in Sources */,
 				AC1A60C6F8A86D0DE26787B3 /* ContentView.swift in Sources */,
 				5C7EB2FB2B223D6AC1512906 /* FocusCard.swift in Sources */,
 				E43126B818E8F8C51323E69F /* InstrumentTapes.swift in Sources */,
 				BE99E3D486C471F961F8FA52 /* LocationModel.swift in Sources */,
 				4155614AD3B3DE4F44242BAF /* MonitorModel.swift in Sources */,
-				C8BB056BA9C074E8835887C9 /* ScopeOSApp.swift in Sources */,
+				0337B530741E4DCA55044894 /* Platform.swift in Sources */,
+				A194A64DA923D47CA2F4FCC5 /* ScopeOSApp.swift in Sources */,
 				E1E1DE7E50BF53AF14270790 /* SkyMap.swift in Sources */,
 				3521D34C16B25F945DD0C8BB /* Theme.swift in Sources */,
 				4D0425C6B0AFD82E48B0994E /* TonightCard.swift in Sources */,
 				F86453C179EEBC1A41C9A080 /* TonightPlanner.swift in Sources */,
 				09A4BA6FAE6842BB9A8BDE83 /* TrafficLogFile.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		490910684D3F2486DF12EFEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A68DC5968ACDDDE2E00BEC68 /* Assistant.swift in Sources */,
+				CC3DFDC34DF110CFFD875559 /* BuildMode.swift in Sources */,
+				2E6A64B9D804D81D84B036AE /* CameraCard.swift in Sources */,
+				95230455AC492CE27B412330 /* CameraModel.swift in Sources */,
+				BADE7E0C182821724674EE67 /* CameraPreview.swift in Sources */,
+				346ACD6AE50D13CBCEDB8AF7 /* Cards.swift in Sources */,
+				2606C0F261832E173B512903 /* ContentView.swift in Sources */,
+				EC3B2B56AB1EA64821790A04 /* FocusCard.swift in Sources */,
+				C5996A2BDBCD93F2E4BBD684 /* InstrumentTapes.swift in Sources */,
+				3CE6A262AAE94A576AE087D7 /* LocationModel.swift in Sources */,
+				1097F61BAD7590B6D92925E8 /* MonitorModel.swift in Sources */,
+				9640712D83EC1FE22C4551F1 /* Platform.swift in Sources */,
+				58645CC47A6A92580D3C8830 /* ScopeOSApp.swift in Sources */,
+				94E506EF9C3F113114D31F85 /* SkyMap.swift in Sources */,
+				8976FEF224F1AA67988188AC /* Theme.swift in Sources */,
+				65376CD1BECED1EB719CF7D4 /* TonightCard.swift in Sources */,
+				88E7A8D3C99879713D7713EC /* TonightPlanner.swift in Sources */,
+				DBB37730E366F25A30619F57 /* TrafficLogFile.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,11 +508,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -399,7 +527,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_FILE = App/iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -445,7 +573,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_FILE = App/iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -480,6 +608,50 @@
 				PRODUCT_NAME = scopeOS;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		67072D8D282654319302E245 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TRSF93SDY9;
+				INFOPLIST_FILE = App/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdot.ScopeOS;
+				PRODUCT_NAME = scopeOS;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		8AD3B080BD4EF87EEDF27277 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TRSF93SDY9;
+				INFOPLIST_FILE = App/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jdot.ScopeOS;
+				PRODUCT_NAME = scopeOS;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -534,12 +706,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -576,6 +748,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		85A8CF407D31D670456030E9 /* Build configuration list for PBXNativeTarget "ScopeOS-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8AD3B080BD4EF87EEDF27277 /* Debug */,
+				67072D8D282654319302E245 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -601,6 +782,18 @@
 		677F48065488F4B191BF711C /* ScopeKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScopeKit;
+		};
+		8FFBED25AE447DA70771E4E2 /* NexStarSimulator */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NexStarSimulator;
+		};
+		95FA58D34CACD67AE9785126 /* ScopeKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScopeKit;
+		};
+		C0E76250125FBBE8DAAA0071 /* ScopeCapture */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScopeCapture;
 		};
 		D19B85455CEB68DBE7448BDF /* ScopeCapture */ = {
 			isa = XCSwiftPackageProductDependency;
