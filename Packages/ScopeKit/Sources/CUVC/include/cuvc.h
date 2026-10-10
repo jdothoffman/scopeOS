@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 /// Minimal access to a USB Video Class camera's controls (exposure, gain, white balance...) via IOKit.
+/// macOS only: on iOS, `cuvc_open` always returns NULL.
 /// Control requests go over the default pipe, so this works alongside macOS streaming the video.
 typedef struct cuvc_device cuvc_device;
 

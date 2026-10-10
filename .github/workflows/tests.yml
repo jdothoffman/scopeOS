@@ -32,6 +32,21 @@ jobs:
         working-directory: Packages/ScopeKit
         run: swift test
 
+      - name: ScopeKit tests (iOS simulator)
+        working-directory: Packages/ScopeKit
+        run: |
+          # Whichever iPhone simulator this Xcode ships with.
+          device=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          # The runner's simulator is slow and jittery: the timing tests (steps carrying straight on, simulator
+          # replies within 5 s) get one retry there. A real failure still fails twice.
+          xcodebuild test \
+            -scheme ScopeKit-Package \
+            -destination "id=$device" \
+            -derivedDataPath ../../build.noindex/ios \
+            -retry-tests-on-failure \
+            -test-iterations 2
+
       - name: App tests
         run: |
           xcodebuild test \

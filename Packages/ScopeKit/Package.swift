@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "ScopeKit",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS(.v15), .iOS("26.0")],
     products: [
         .library(name: "ScopeKit", targets: ["ScopeKit"]),
         .library(name: "NexStarSimulator", targets: ["NexStarSimulator"]),
@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "NexStarSimulator", dependencies: ["ScopeKit"]),
         .executableTarget(name: "scopesim", dependencies: ["NexStarSimulator"]),
         .executableTarget(name: "scopeos-cli", dependencies: ["ScopeKit"]),
-        .target(name: "CUVC", linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreFoundation")]),
+        .target(name: "CUVC", linkerSettings: [.linkedFramework("IOKit", .when(platforms: [.macOS])), .linkedFramework("CoreFoundation")]),
         .target(name: "ScopeCapture", dependencies: ["ScopeKit", "CUVC"]),
         .executableTarget(name: "scopecap", dependencies: ["ScopeCapture", "ScopeKit"]),
         .testTarget(name: "ScopeKitTests", dependencies: ["ScopeKit", "NexStarSimulator", "ScopeCapture"]),
