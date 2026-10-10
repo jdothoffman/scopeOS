@@ -98,6 +98,7 @@ private struct FocusHoldButton: View {
     let positive: Bool
     let systemImage: String
     @State private var pressed = false
+    @GestureState private var touching = false
 
     private var isMine: Bool { model.activeFocus?.positive == positive }
     private var enabled: Bool { model.canFocus && !model.focusInFlight && (model.activeFocus == nil ? model.activeMove == nil : isMine) }
@@ -112,19 +113,19 @@ private struct FocusHoldButton: View {
             .contentShape(Rectangle())
             .opacity(enabled ? 1 : 0.35)
             .help(positive ? "Hold to move the focuser up (higher positions)" : "Hold to move the focuser down (lower positions)")
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !pressed, enabled else { return }
-                        pressed = true
-                        model.pressFocus(positive: positive)
-                    }
-                    .onEnded { _ in
-                        guard pressed else { return }
-                        pressed = false
-                        model.releaseFocus()
-                    }
-            )
+            // `touching` is reset when the gesture ends and also when the system cancels it (Control Center, an alert, a
+            // second gesture taking over), which never calls `onEnded`: the move must stop either way.
+            .gesture(DragGesture(minimumDistance: 0).updating($touching) { _, touching, _ in touching = true })
+            .onChange(of: touching) { _, nowTouching in
+                if nowTouching {
+                    guard !pressed, enabled else { return }
+                    pressed = true
+                    model.pressFocus(positive: positive)
+                } else if pressed {
+                    pressed = false
+                    model.releaseFocus()
+                }
+            }
             .onChange(of: enabled) { _, nowEnabled in
                 if !nowEnabled && pressed {
                     pressed = false
