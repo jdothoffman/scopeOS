@@ -31,7 +31,7 @@ final class MonitorModel {
         var help: String {
             switch self {
             case .wifiModule:
-                "Close the SkyPortal app first: the module accepts one connection at a time. On the module's own network (Celestron-XX) the address is 1.2.3.4; on your home or Starlink network, click Find. Shows motor angles; full sky coordinates need the USB option."
+                "Close the SkyPortal app first: the module accepts one connection at a time. On the module's own network (Celestron-XX) the address is 1.2.3.4; on your home or Starlink network, click Find. Shows motor angles; full sky coordinates need \(Kind.available.contains(.usbHandController) ? "the USB option" : "the hand controller's USB connection, from a Mac")."
             case .usbHandController:
                 "Plug a USB cable into the hand controller. Shows full sky coordinates (RA/Dec) plus azimuth and altitude."
             case .networkHandController:

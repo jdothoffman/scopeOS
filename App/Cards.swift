@@ -45,6 +45,8 @@ struct Readout: View {
                     .font(Theme.numeric(32))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7) // a little smaller rather than wrapping, on a phone
                 if let detail {
                     Text(detail)
                         .font(Theme.display(17))
@@ -75,21 +77,24 @@ struct InfoRow: View {
 
 struct PointingCard: View {
     @Environment(MonitorModel.self) private var model
+    @Environment(\.layoutWidth) private var width
     let status: MountStatus?
 
     var body: some View {
         @Bindable var model = model
         Card(title: "Pointing", systemImage: "scope") {
             if let eq = status?.equatorial {
-                HStack(spacing: 40) {
+                HStack(spacing: width == .narrow ? 20 : 40) {
                     Readout(label: "Right ascension", value: SkyFormat.rightAscension(eq.raHours))
                     Readout(label: "Declination", value: SkyFormat.declination(eq.decDegrees))
                 }
             } else if status?.protocolKind == .aux {
-                Text("Motor angles over WiFi. RA/Dec needs the USB connection to the hand controller.")
+                Text(MonitorModel.Kind.available.contains(.usbHandController)
+                     ? "Motor angles over WiFi. RA/Dec needs the USB connection to the hand controller."
+                     : "Motor angles over WiFi. RA/Dec needs the hand controller's USB connection, from a Mac.")
                     .font(.caption)
                     .foregroundStyle(Theme.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(width == .wide ? 1 : 2)
                     .minimumScaleFactor(0.85)
             }
 
@@ -332,6 +337,7 @@ struct ControlCard: View {
                                 .help("Enable up/down (needs movement on)")
                         }
                         .toggleStyle(.switch)
+                        .lineLimit(1) // iOS switches are wider; the labels mustn't break mid-word
                     }
                     Toggle("Lock while the Sun is up", isOn: $model.sunLockWhileUp)
                         .toggleStyle(.switch)
