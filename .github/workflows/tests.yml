@@ -38,12 +38,15 @@ jobs:
           # Whichever iPhone simulator this Xcode ships with.
           device=$(xcrun simctl list devices available --json \
             | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
-          # The runner's simulator is slow and jittery: the timing tests (steps carrying straight on, simulator
-          # replies within 5 s) get one retry there. A real failure still fails twice.
+          # One test at a time: the runner's simulator has few cores, and with every test started at once the
+          # CPU-heavy ones (the simulated camera's frames, the Moon and Sun textures) stalled the rest for 15 s or
+          # more, so the simulated mounts' replies missed their 1.5 s timeouts. (A retry re-runs every test at once
+          # again, so it didn't help.) The retry stays for the odd slow moment.
           xcodebuild test \
             -scheme ScopeKit-Package \
             -destination "id=$device" \
             -derivedDataPath ../../build.noindex/ios \
+            -parallel-testing-enabled NO \
             -retry-tests-on-failure \
             -test-iterations 2
 
