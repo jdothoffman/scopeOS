@@ -408,7 +408,7 @@ struct ControlCard: View {
             Button("Return to home") { model.returnHome() }
             Button("Not now", role: .cancel) {}
         } message: {
-            Text("Drive it back now? It moves one axis at a time, in the same small steps as holding an arrow, and Stop cancels it.")
+            Text("Drive it back now? It moves one axis at a time at the mount's normal slewing speed, finishing in small steps, and Stop cancels it.")
         }
     }
 }

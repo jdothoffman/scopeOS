@@ -11,8 +11,10 @@ public final class SimulatedMount: @unchecked Sendable {
     public static let focuserLimits = 1_000 ... 39_000
     /// Where the simulated optics are in focus. The focuser starts a little away from it, so there's focusing to do.
     public static let bestFocus = 21_500
-    /// How long a move takes per degree (tests speed it up).
+    /// How long a slow move takes per degree (tests speed it up). A fast slew is six times quicker, about 4° a
+    /// second at the default.
     public let secondsPerDegree: Double
+    static let slewSpeedup = 6.0
 
     private let lock = NSLock()
     private var location: Observer?
@@ -105,6 +107,23 @@ public final class SimulatedMount: @unchecked Sendable {
                 azimuthMove.start(by: delta, at: now, secondsPerDegree: secondsPerDegree)
             } else {
                 altitudeMove.start(by: delta, at: now, secondsPerDegree: secondsPerDegree)
+            }
+            return delta
+        }
+    }
+
+    /// A fast GoTo of one motor to raw angle `degrees` (as the motor counts, 0°–360°). Like the real mount's, it
+    /// counts straight there: from just below zero to just above, it goes the long way round, not across zero.
+    /// Returns the turn.
+    func slew(_ motor: AuxDevice, toRaw degrees: Double, at now: Date = .now) -> Double {
+        lock.withLock {
+            let state = currentState(at: now)
+            let raw = Astronomy.normalize(motor == .azimuthMotor ? state.horizontal.azimuth : state.horizontal.altitude)
+            let delta = degrees - raw
+            if motor == .azimuthMotor {
+                azimuthMove.start(by: delta, at: now, secondsPerDegree: secondsPerDegree / Self.slewSpeedup)
+            } else {
+                altitudeMove.start(by: delta, at: now, secondsPerDegree: secondsPerDegree / Self.slewSpeedup)
             }
             return delta
         }

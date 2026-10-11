@@ -776,7 +776,7 @@ final class MonitorModel {
         return nil
     }
 
-    /// Drives the scope back to the home position, one axis at a time, in the same bounded steps as a hold.
+    /// Drives the scope back to the home position, one axis at a time: a slew for the long part, then slow steps.
     func returnHome() {
         offerReturnHome = false
         if let problem = returnHomeProblem ?? movementLock() {
@@ -816,7 +816,7 @@ final class MonitorModel {
     /// What the Go to confirmation says about `star`.
     func goToSummary(_ star: SkyTarget) -> String {
         guard let sky = pointing(of: .star(star)) else { return "" }
-        return String(format: "It is %.0f° up in the %@ (azimuth %.0f°). scopeOS moves one axis at a time in small steps, checks the Sun on the way, and corrects for the sky's turning when it gets there. Stop cancels it. How close it lands depends on your calibration.",
+        return String(format: "It is %.0f° up in the %@ (azimuth %.0f°). scopeOS moves one axis at a time at the mount's normal slewing speed, finishing in small steps, checks the Sun on the way, and corrects for the sky's turning when it gets there. Stop cancels it. How close it lands depends on your calibration.",
                       sky.altitude, SkyFormat.compassPoint(sky.azimuth), sky.azimuth)
     }
 

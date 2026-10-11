@@ -255,14 +255,14 @@ public actor AuxClient: MountClient {
         guard degrees.isFinite, degrees != 0, abs(degrees) <= axis.maxStepDegrees else {
             throw MountError.refused("A \(axis.rawValue) nudge must be between 0° and \(axis.maxStepDegrees)°.")
         }
-        try await moveMotor(axis) { _ in degrees }
+        try await moveMotor(axis) { _, _ in .step(degrees) }
     }
 
     @discardableResult
     public func move(_ axis: NudgeAxis, positive: Bool, continuing: Bool, onSend: @escaping @Sendable () -> Void) async throws -> Double {
-        let end = try await moveMotor(axis, alreadyTurning: continuing, onSend: onSend) { angle in
+        let end = try await moveMotor(axis, alreadyTurning: continuing, onSend: onSend) { angle, _ in
             let sign = positive ? 1.0 : -1.0
-            guard axis == .altitude else { return sign * axis.maxStepDegrees }
+            guard axis == .altitude else { return .step(sign * axis.maxStepDegrees) }
             // Head for the band edge rather than refusing outright when it's closer than a full step.
             let limits = NudgeCommand.altitudeLimits
             let room = (positive ? limits.upperBound - angle : angle - limits.lowerBound) - 0.001
@@ -270,7 +270,7 @@ public actor AuxClient: MountClient {
                 throw MountError.refused(String(format: "Already at the %@ altitude limit (%.0f°).",
                                                 positive ? "upper" : "lower", positive ? limits.upperBound : limits.lowerBound))
             }
-            return sign * min(axis.maxStepDegrees, room)
+            return .step(sign * min(axis.maxStepDegrees, room))
         }
         guard let end else { throw MountError.refused("Nothing to move.") }
         return end
@@ -281,9 +281,11 @@ public actor AuxClient: MountClient {
         return axis == .altitude ? Angles.signed(angle) : angle
     }
 
+    /// The long part of a leg is a slew at the mount's normal speed (`SlewCommand`), stopping short of the target and
+    /// clear of the motor's zero; the rest, and any stretch across zero, goes in slow steps from rest.
     public func move(_ axis: NudgeAxis, toward target: Double, positive: Bool, onSend: @escaping @Sendable () -> Void) async throws -> Bool {
         var arrives = false
-        try await moveMotor(axis, onSend: onSend) { angle in
+        try await moveMotor(axis, onSend: onSend) { angle, raw in
             let remaining: Double
             if axis == .azimuth {
                 let sky = Astronomy.normalize(angle - (calibration?.azimuthOffset ?? 0))
@@ -296,9 +298,28 @@ public actor AuxClient: MountClient {
             }
             arrives = abs(remaining) <= axis.maxStepDegrees
             guard abs(remaining) > Self.arrivalTolerance else { return nil }
-            return arrives ? remaining : (remaining > 0 ? 1 : -1) * axis.maxStepDegrees
+            let sign = remaining > 0 ? 1.0 : -1.0
+            // Slew only what one slow step can't cover; the slew is never the last move.
+            if abs(remaining) > max(axis.maxStepDegrees, SlewCommand.minimumDegrees) + SlewCommand.shortOfTarget,
+               let slew = SlewCommand.plan(axis, degrees: remaining - sign * SlewCommand.shortOfTarget, fromRaw: raw) {
+                arrives = false
+                return .slew(slew)
+            }
+            return .step(arrives ? remaining : sign * axis.maxStepDegrees)
         }
         return arrives
+    }
+
+    /// One move of a motor: a slow GoTo step (`NudgeCommand`) or a fast slew (`SlewCommand`), in degrees.
+    enum Motion {
+        case step(Double)
+        case slew(Double)
+
+        var degrees: Double {
+            switch self {
+            case .step(let degrees), .slew(let degrees): degrees
+            }
+        }
     }
 
     /// How close to a target counts as there.
@@ -308,15 +329,15 @@ public actor AuxClient: MountClient {
         try await request(.slewDone, to: axis.motor).first != 0xFF
     }
 
-    /// Sends one bounded slow GoTo. `step` receives the motor's current angle (signed for altitude) and returns the
-    /// move in degrees, or nil if no move is needed. Everything happens under one lock hold, so the position the
+    /// Sends one bounded move. `step` receives the motor's current angle (signed and calibrated for altitude) and its
+    /// raw angle as the motor counts (0°–360°), and returns the move, or nil if none is needed. Everything happens under one lock hold, so the position the
     /// target is based on can't go stale between reading it and sending the move. `onSend` runs just before the
     /// move is written. `alreadyTurning` lets it go out while this axis is still moving (the next step of a hold);
     /// the other axis must always be still. Returns where the move ends as a motor angle (signed for altitude), or
     /// nil if no move was needed.
     @discardableResult
     private func moveMotor(_ axis: NudgeAxis, alreadyTurning: Bool = false, onSend: () -> Void = {},
-                           step: (Double) throws -> Double?) async throws -> Double? {
+                           step: (Double, Double) throws -> Motion?) async throws -> Double? {
         await beginExchange()
         defer { exchangeLock.release() }
 
@@ -329,7 +350,8 @@ public actor AuxClient: MountClient {
         let angle = Angles.degrees(fraction: current, bits: 24)
         let altitudeOffset = calibration?.altitudeOffset ?? 0
         // Altitude limits apply to the real (calibrated) altitude, not the raw motor count.
-        guard let degrees = try step(axis == .altitude ? Angles.signed(angle) - altitudeOffset : angle) else { return nil }
+        guard let motion = try step(axis == .altitude ? Angles.signed(angle) - altitudeOffset : angle, angle) else { return nil }
+        let degrees = motion.degrees
 
         if axis == .altitude {
             let altitude = Angles.signed(angle) - altitudeOffset
@@ -351,13 +373,23 @@ public actor AuxClient: MountClient {
             throw MountError.refused(problem)
         }
 
-        let bytes = NudgeCommand.packet(axis, from: current, by: degrees)
-        try NudgeCommand.check(bytes, axis: axis, currentPosition: current, altitudeOffset: altitudeOffset)
+        let bytes: [UInt8], command: UInt8, what: String
+        switch motion {
+        case .step:
+            bytes = NudgeCommand.packet(axis, from: current, by: degrees)
+            try NudgeCommand.check(bytes, axis: axis, currentPosition: current, altitudeOffset: altitudeOffset)
+            (command, what) = (NudgeCommand.auxCommand, "move")
+        case .slew:
+            guard !alreadyTurning else { throw MountError.refused("A slew only starts from rest.") }
+            bytes = SlewCommand.packet(axis, from: current, by: degrees)
+            try SlewCommand.check(bytes, axis: axis, currentPosition: current, altitudeOffset: altitudeOffset)
+            (command, what) = (SlewCommand.auxCommand, "slew")
+        }
         onSend()
         try await transport.write(bytes)
-        log?(TrafficEntry(.sent, "\(Hex.string(bytes))  (move \(String(format: "%+.2f", degrees))° → \(axis.motor.label))"))
-        _ = try await reply(from: axis.motor, command: NudgeCommand.auxCommand, timeout: .seconds(1),
-                            context: "move acknowledgement from \(axis.motor.label)")
+        log?(TrafficEntry(.sent, "\(Hex.string(bytes))  (\(what) \(String(format: "%+.2f", degrees))° → \(axis.motor.label))"))
+        _ = try await reply(from: axis.motor, command: command, timeout: .seconds(1),
+                            context: "\(what) acknowledgement from \(axis.motor.label)")
         return axis == .altitude ? Angles.signed(angle) + degrees : Astronomy.normalize(angle + degrees)
     }
 
