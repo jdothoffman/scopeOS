@@ -332,6 +332,9 @@ struct SkyMapRenderer {
     /// What's under `point`: the Moon or a planet first, then the nearest bright-enough star, else that spot of sky.
     func hitTest(_ point: CGPoint) -> SkySelection {
         func distance(_ other: CGPoint) -> CGFloat { hypot(other.x - point.x, other.y - point.y) }
+        // The Sun, for Go to in Solar mode (which asks to confirm a solar filter first).
+        let sun = horizontal(Astronomy.sunPosition(at: date))
+        if sun.altitude > -1, let at = projection.point(for: sun, limit: 80), distance(at) <= 14 { return .body(.sun) }
         let body = SkyMapData.bodies.compactMap { body -> (SkyTarget, CGFloat)? in
             let sky = body.horizontal(at: date, observer: observer)
             guard sky.altitude > -1, let at = projection.point(for: sky, limit: 80) else { return nil }
@@ -481,7 +484,7 @@ struct SkySelectionCard: View {
             guard let star = SkyMapData.star(hr: hr)?.star else { return "" }
             let designation = star.name.isEmpty ? "" : "\(star.designation) · "
             return designation + String(format: "magnitude %.1f · HR %d", star.magnitude, star.hr)
-        case .body(let body): return body.kind == .moon ? "Earth's moon" : "Planet"
+        case .body(let body): return body.isSun ? "Our star: Go to asks you to confirm a solar filter first" : body.kind == .moon ? "Earth's moon" : "Planet"
         case .spot: return "A point on the sky"
         }
     }

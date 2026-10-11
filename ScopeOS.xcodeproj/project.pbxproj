@@ -14,6 +14,7 @@
 		09A4BA6FAE6842BB9A8BDE83 /* TrafficLogFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */; };
 		1097F61BAD7590B6D92925E8 /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
 		12335F93DD3F1410C5970126 /* NexStarSimulator in Frameworks */ = {isa = PBXBuildFile; productRef = 40C9FE93024BC8A50F5A1BC8 /* NexStarSimulator */; };
+		1D92D19D430628BF2C63545E /* SolarViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC45E3D1F7461866B1A5EC1 /* SolarViews.swift */; };
 		25C274E91104C842D0313E2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 37EC60E8C1FE19414C83FF1E /* Assets.xcassets */; };
 		2606C0F261832E173B512903 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
 		2E6A64B9D804D81D84B036AE /* CameraCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94DEFEBA908068B100AAEA /* CameraCard.swift */; };
@@ -24,8 +25,10 @@
 		3CE6A262AAE94A576AE087D7 /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
 		4155614AD3B3DE4F44242BAF /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
 		415B822B602B23146AFEB5FB /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
+		475B56A17B145636B6657488 /* SolarViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC45E3D1F7461866B1A5EC1 /* SolarViews.swift */; };
 		4BE28461D35F9AA8BFAD52A4 /* ScopeKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3196804302A09DD9BA01E8B7 /* ScopeKit */; };
 		4D0425C6B0AFD82E48B0994E /* TonightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */; };
+		4ECEF4E743063A3CD6A95C39 /* SolarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFC05E0A5387354078B77DB /* SolarLog.swift */; };
 		510063DC6F305C432A1A8DB8 /* TrafficLogFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FB8B35EDCE7F5A1336E40B /* TrafficLogFile.swift */; };
 		58645CC47A6A92580D3C8830 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDE294B68D6001B04290F78 /* ScopeOSApp.swift */; };
 		5C7EB2FB2B223D6AC1512906 /* FocusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E192FA5AF1210039E82C12 /* FocusCard.swift */; };
@@ -40,6 +43,7 @@
 		815E1799582207A0262A3D82 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
 		88E7A8D3C99879713D7713EC /* TonightPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */; };
 		8976FEF224F1AA67988188AC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30ABAA3175E3553C4F24D81 /* Theme.swift */; };
+		917FB02FD9D77AC0507F6A0E /* SolarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFC05E0A5387354078B77DB /* SolarLog.swift */; };
 		918329A2A96E54F6F6D34EFF /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163291358AE3B6DDE5305D37 /* Cards.swift */; };
 		935016CB2003D71BC6FE8EE7 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8557BBCC102D40F97DE2A3B6 /* Platform.swift */; };
 		94E506EF9C3F113114D31F85 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
@@ -48,8 +52,10 @@
 		A194A64DA923D47CA2F4FCC5 /* ScopeOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */; };
 		A21656F848679EA5CEF60F89 /* Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C78AE8960937C0C045B2C3E /* Layout.swift */; };
 		A68DC5968ACDDDE2E00BEC68 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
+		A7F2FD9AE28D07834668BC6F /* SolarViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC45E3D1F7461866B1A5EC1 /* SolarViews.swift */; };
 		AC1A60C6F8A86D0DE26787B3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565860273E3FEF44D5F82627 /* ContentView.swift */; };
 		AFFB6C600AAEBBC3DBFF6EC0 /* SkyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A9D7A956D9399A2F78DF40 /* SkyMap.swift */; };
+		B2241F11E30378C300863645 /* SolarLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFC05E0A5387354078B77DB /* SolarLog.swift */; };
 		B3CEFB3CD2737738CBDF7EAB /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
 		B536BA3CA91BADCAA3081A16 /* InstrumentTapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12ADF93B443ADF3E94F6E055 /* InstrumentTapes.swift */; };
 		B5520ED81E7D82FBEE4C4673 /* FocusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E192FA5AF1210039E82C12 /* FocusCard.swift */; };
@@ -99,8 +105,10 @@
 		51C6C6C15219D6F788B159FE /* ScopeOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeOSApp.swift; sourceTree = "<group>"; };
 		55E40567E709BABAA76D964E /* ScopeOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScopeOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		565860273E3FEF44D5F82627 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5AFC05E0A5387354078B77DB /* SolarLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarLog.swift; sourceTree = "<group>"; };
 		5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
 		6C78AE8960937C0C045B2C3E /* Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Layout.swift; sourceTree = "<group>"; };
+		6CC45E3D1F7461866B1A5EC1 /* SolarViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarViews.swift; sourceTree = "<group>"; };
 		720036D9D1CAF4C243CF0687 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		78E192FA5AF1210039E82C12 /* FocusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCard.swift; sourceTree = "<group>"; };
 		82A9D7A956D9399A2F78DF40 /* SkyMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyMap.swift; sourceTree = "<group>"; };
@@ -200,6 +208,8 @@
 				8557BBCC102D40F97DE2A3B6 /* Platform.swift */,
 				A3CF139BB9FFBB121C247422 /* ScopeOS.entitlements */,
 				82A9D7A956D9399A2F78DF40 /* SkyMap.swift */,
+				5AFC05E0A5387354078B77DB /* SolarLog.swift */,
+				6CC45E3D1F7461866B1A5EC1 /* SolarViews.swift */,
 				B30ABAA3175E3553C4F24D81 /* Theme.swift */,
 				E01DFCAF8C8F2DE81B8E8F8A /* TonightCard.swift */,
 				9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */,
@@ -408,6 +418,8 @@
 				AFFB6C600AAEBBC3DBFF6EC0 /* SkyMap.swift in Sources */,
 				03BE31124B066018B5CCDBC3 /* SkyMapTests.swift in Sources */,
 				71EC58F48DDA5757E5D07807 /* SnapshotTests.swift in Sources */,
+				4ECEF4E743063A3CD6A95C39 /* SolarLog.swift in Sources */,
+				A7F2FD9AE28D07834668BC6F /* SolarViews.swift in Sources */,
 				06A0C3B4FCEED4AA5DDEA5EC /* Theme.swift in Sources */,
 				F1120607C2252B55582C80C8 /* TonightCard.swift in Sources */,
 				02A079C31FC167370FADBC28 /* TonightPlanner.swift in Sources */,
@@ -435,6 +447,8 @@
 				0337B530741E4DCA55044894 /* Platform.swift in Sources */,
 				A194A64DA923D47CA2F4FCC5 /* ScopeOSApp.swift in Sources */,
 				E1E1DE7E50BF53AF14270790 /* SkyMap.swift in Sources */,
+				917FB02FD9D77AC0507F6A0E /* SolarLog.swift in Sources */,
+				1D92D19D430628BF2C63545E /* SolarViews.swift in Sources */,
 				3521D34C16B25F945DD0C8BB /* Theme.swift in Sources */,
 				4D0425C6B0AFD82E48B0994E /* TonightCard.swift in Sources */,
 				F86453C179EEBC1A41C9A080 /* TonightPlanner.swift in Sources */,
@@ -461,6 +475,8 @@
 				9640712D83EC1FE22C4551F1 /* Platform.swift in Sources */,
 				58645CC47A6A92580D3C8830 /* ScopeOSApp.swift in Sources */,
 				94E506EF9C3F113114D31F85 /* SkyMap.swift in Sources */,
+				B2241F11E30378C300863645 /* SolarLog.swift in Sources */,
+				475B56A17B145636B6657488 /* SolarViews.swift in Sources */,
 				8976FEF224F1AA67988188AC /* Theme.swift in Sources */,
 				65376CD1BECED1EB719CF7D4 /* TonightCard.swift in Sources */,
 				88E7A8D3C99879713D7713EC /* TonightPlanner.swift in Sources */,

@@ -26,13 +26,14 @@ final class SimulatedSkyRenderer {
     private var smoothedExposure: Double?
     private static let moonTextureSize = 1024
 
-    /// The Moon's texture takes a moment to make, so it's made in the background once a simulated camera exists, and
-    /// the Moon is left out until it's ready.
+    /// The Moon's and the Sun's textures take a moment to make, so they're made in the background once a simulated
+    /// camera exists, and each is left out until it's ready.
     private static let moonLock = NSLock()
     nonisolated(unsafe) private static var moonTexture: [Float]?
+    nonisolated(unsafe) private static var sunTexture: [Float]?
     nonisolated(unsafe) private static var moonStarted = false
 
-    static var moonReady: Bool { moonLock.withLock { moonTexture != nil } }
+    static var moonReady: Bool { moonLock.withLock { moonTexture != nil && sunTexture != nil } }
 
     static func prepareMoon() {
         let start = moonLock.withLock {
@@ -43,6 +44,8 @@ final class SimulatedSkyRenderer {
         DispatchQueue.global(qos: .utility).async {
             let texture = makeMoonTexture()
             moonLock.withLock { moonTexture = texture }
+            let sun = makeSunTexture()
+            moonLock.withLock { sunTexture = sun }
         }
     }
 
@@ -67,12 +70,13 @@ final class SimulatedSkyRenderer {
         var sky = (r: 0.004, g: 0.004, b: 0.0045)
         var discs: [Disc] = [], stars: [(x: Double, y: Double, magnitude: Double)] = []
         var moon: (x: Double, y: Double, radius: Double)?
+        var sun: (x: Double, y: Double, radius: Double)?
         var defocus = 0.0
 
         if let view {
             let date = view.date, observer = view.observer
-            sky = Self.skyGlow(sunAltitude: Astronomy.horizontal(Astronomy.sunPosition(at: date), at: date, observer: observer).altitude,
-                               pointingAltitude: view.pointing.altitude)
+            let sunSky = Astronomy.horizontal(Astronomy.sunPosition(at: date), at: date, observer: observer)
+            sky = Self.skyGlow(sunAltitude: sunSky.altitude, pointingAltitude: view.pointing.altitude)
             defocus = Double(abs(view.focusOffset)) / Self.focusStepsPerPixel * Double(width) / 640
             let wobble = Self.wobbleArcseconds / arcsecondsPerPixel
             let origin = CGPoint(x: Double(width) / 2 + wobble * Self.gaussian(), y: Double(height) / 2 + wobble * Self.gaussian())
@@ -85,6 +89,14 @@ final class SimulatedSkyRenderer {
                 guard let point = projection.point(for: sky, limit: 0.5),
                       frame.insetBy(dx: -radius * 2.5, dy: -radius * 2.5).contains(point) else { continue }
                 discs.append(Disc(x: Double(point.x), y: Double(point.y), radius: radius, body: planet))
+            }
+            // The Sun, only ever seen in Solar mode: as through a white-light filter over the front of the telescope,
+            // which also darkens the sky around it.
+            let sunRadius = 960 / arcsecondsPerPixel
+            if let point = projection.point(for: sunSky, limit: 1),
+               frame.insetBy(dx: -sunRadius, dy: -sunRadius).contains(point) {
+                sun = (Double(point.x), Double(point.y), sunRadius)
+                sky = (0.004, 0.004, 0.0045)
             }
             let moonRadius = 932 / arcsecondsPerPixel
             if let point = projection.point(for: SolarSystem.moonHorizontal(at: date, observer: observer), limit: 1),
@@ -106,6 +118,7 @@ final class SimulatedSkyRenderer {
         var brightest = max(sky.r, sky.g, sky.b)
         for disc in discs { brightest = max(brightest, Self.surfaceBrightness(disc.body)) }
         if moon != nil { brightest = max(brightest, Self.moonBrightness) }
+        if sun != nil { brightest = max(brightest, Self.sunBrightness) }
         for star in stars { brightest = max(brightest, Self.starFlux(star.magnitude) / starSpread) }
         var milliseconds = Double(exposureUnits) / 10
         if autoExposure {
@@ -123,7 +136,10 @@ final class SimulatedSkyRenderer {
         fill(&green, Float(sky.g * scale))
         fill(&blue, Float(sky.b * scale))
         if let moon, let texture = Self.moonLock.withLock({ Self.moonTexture }) {
-            addMoon(moon, texture: texture, brightness: Float(Self.moonBrightness * scale))
+            addDisc(moon, texture: texture, brightness: Float(Self.moonBrightness * scale), tint: [0.95, 0.93, 0.9])
+        }
+        if let sun, let texture = Self.moonLock.withLock({ Self.sunTexture }) {
+            addDisc(sun, texture: texture, brightness: Float(Self.sunBrightness * scale), tint: [1, 0.95, 0.85])
         }
         for disc in discs { draw(disc, scale: scale) }
 
@@ -168,6 +184,8 @@ final class SimulatedSkyRenderer {
     private static func starFlux(_ magnitude: Double) -> Double { 3000 * pow(10, -0.4 * magnitude) }
 
     private static let moonBrightness = 20.0
+    /// Through a solar filter.
+    private static let sunBrightness = 60.0
 
     private static func surfaceBrightness(_ planet: Planet?) -> Double {
         switch planet {
@@ -285,8 +303,8 @@ final class SimulatedSkyRenderer {
         }
     }
 
-    /// The Moon's surface (a texture made once), placed and scaled into the frame.
-    private func addMoon(_ moon: (x: Double, y: Double, radius: Double), texture moonTexture: [Float], brightness: Float) {
+    /// The Moon's or the Sun's surface (a texture made once), placed and scaled into the frame.
+    private func addDisc(_ moon: (x: Double, y: Double, radius: Double), texture moonTexture: [Float], brightness: Float, tint: [Float]) {
         let size = Self.moonTextureSize
         let pixelsPerTexel = moon.radius / Double(size / 2 - 6)
         var transform = vImage_AffineTransform(a: Float(pixelsPerTexel), b: 0, c: 0, d: Float(pixelsPerTexel),
@@ -304,7 +322,7 @@ final class SimulatedSkyRenderer {
         }
         let count = vDSP_Length(width * height)
         moonPlane.withUnsafeBufferPointer { plane in
-            for (index, tint) in [Float(0.95), 0.93, 0.9].enumerated() {
+            for (index, tint) in tint.enumerated() {
                 var amount = brightness * tint
                 withPlane(index) { vDSP_vsma(plane.baseAddress!, 1, &amount, $0, 1, $0, 1, count) }
             }
@@ -445,6 +463,33 @@ final class SimulatedSkyRenderer {
                     }
                     texture[index] = max(0.04, texture[index] + Float(shade))
                 }
+            }
+        }
+        return texture
+    }
+
+    /// The Sun in white light, 1024 texels across: darker toward the limb, with a few sunspot groups and a faint
+    /// mottling of granulation.
+    private static func makeSunTexture() -> [Float] {
+        let size = moonTextureSize, center = Double(size) / 2, radius = center - 6
+        var generator = SplitMix(seed: 0x50_1A2)
+        func random(_ range: ClosedRange<Double>) -> Double { range.lowerBound + (range.upperBound - range.lowerBound) * generator.nextUnit() }
+        let spots = (0 ..< 9).map { _ in (x: random(-0.7 ... 0.7), y: random(-0.35 ... 0.35), r: random(0.006 ... 0.022)) }
+        var texture = [Float](repeating: 0, count: size * size)
+        for y in 0 ..< size {
+            for x in 0 ..< size {
+                let u = (Double(x) + 0.5 - center) / radius, v = (Double(y) + 0.5 - center) / radius
+                let r2 = u * u + v * v
+                guard r2 < 1.02 else { continue }
+                let mu = max(0, 1 - r2).squareRoot()
+                var level = 1 - 0.6 * (1 - mu) - 0.1 * (1 - mu * mu)
+                for spot in spots {
+                    let d = ((u - spot.x) * (u - spot.x) + (v - spot.y) * (v - spot.y)).squareRoot() / spot.r
+                    if d < 1 { level *= 0.18 } else if d < 2.3 { level *= 0.62 }
+                }
+                level *= 1 + 0.03 * (generator.nextUnit() - 0.5)
+                let edge = min(1, max(0, (1 - r2.squareRoot()) * radius + 0.5))
+                texture[y * size + x] = Float(level * edge)
             }
         }
         return texture

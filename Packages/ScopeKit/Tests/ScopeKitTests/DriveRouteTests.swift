@@ -28,6 +28,18 @@ struct DriveRouteTests {
         guard case .failure(.nearSun) = result else { Issue.record("expected nearSun, got \(result)"); return }
     }
 
+    @Test func inSolarModeARouteMayGoToTheSun() throws {
+        let sun = Horizontal(azimuth: 180, altitude: 40)
+        let legs = try DriveRoute.legs(from: Horizontal(azimuth: 160, altitude: 30), to: sun, turn: 20, sun: sun, sunKeepOut: false).get()
+        #expect(legs.map(\.axis) == [.altitude, .azimuth])
+        // The altitude band still holds.
+        let high = Horizontal(azimuth: 180, altitude: 80)
+        guard case .failure(.aboveBand) = DriveRoute.legs(from: sun, to: high, turn: 0, sun: high, sunKeepOut: false) else {
+            Issue.record("expected aboveBand")
+            return
+        }
+    }
+
     @Test func targetsOutsideTheAltitudeBandAreRefused() {
         let from = Horizontal(azimuth: 10, altitude: 30)
         #expect(DriveRoute.legs(from: from, to: Horizontal(azimuth: 10, altitude: -5), turn: 0, sun: night) == .failure(.belowBand(altitude: -5)))

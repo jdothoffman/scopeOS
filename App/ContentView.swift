@@ -59,6 +59,7 @@ struct ContentView: View {
                 TabBar(tab: $tab)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        SolarModeBanner()
                         if let error = model.lastError {
                             Label(error, systemImage: "exclamationmark.triangle.fill")
                                 .font(.callout)
@@ -96,6 +97,9 @@ struct ContentView: View {
             // A held arrow vanishes with its tab before it can see the mouse button come up: stop the move now.
             model.releaseArrow()
             model.releaseFocus()
+        }
+        .sheet(isPresented: Binding(get: { model.pendingSolarGoTo }, set: { model.pendingSolarGoTo = $0 })) {
+            SolarConfirmationSheet()
         }
         .onChange(of: model.simulatorState) {
             // The simulator brings its own camera (and, on iOS, the Camera tab) and takes them away again.

@@ -66,6 +66,26 @@ struct MotionPolicyTests {
         #expect(moves(transport) == 0)
     }
 
+    @Test func solarModeAllowsMovingTowardTheSunWhileItsUp() async {
+        // The daylight lock is on too: Solar mode lifts both it and the keep-out.
+        let (client, transport) = mount(at: nearTheSun, policy: MotionPolicy(observer: Self.observer, lockWhileSunUp: true, solarMode: true, date: Self.noon))
+        #expect(await refusal { try await client.nudge(.azimuth, by: 1) } == nil)
+        #expect(moves(transport) == 1)
+    }
+
+    @Test func solarModeStillNeedsALocation() async {
+        let (client, transport) = mount(at: nearTheSun, policy: MotionPolicy(observer: nil, solarMode: true, date: Self.noon))
+        let reason = await refusal { try await client.nudge(.azimuth, by: 1) }
+        #expect(reason?.contains("location") == true, "\(String(describing: reason))")
+        #expect(moves(transport) == 0)
+    }
+
+    @Test func theSunIsAGoToTarget() {
+        let sky = SkyTarget.sun.horizontal(at: Self.noon, observer: Self.observer)
+        #expect(Astronomy.separation(sky, Self.sun) < 1e-5)
+        #expect(SkyTarget.sun.isSun && !SkyTarget.moon.isSun)
+    }
+
     @Test func withoutALocationEveryMoveIsRefused() async {
         let (client, transport) = mount(at: Horizontal(azimuth: 10, altitude: 40), policy: nil)
         let reason = await refusal { try await client.nudge(.azimuth, by: 1) }

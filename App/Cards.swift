@@ -370,9 +370,10 @@ struct ControlCard: View {
 
                     // The rules in one line, the full explanation a click away.
                     HStack(spacing: 6) {
-                        Text(String(format: "Hold to move, up to %d s · %.0f°–%.0f° up · %.0f° from the Sun",
+                        Text(String(format: "Hold to move, up to %d s · %.0f°–%.0f° up · %@",
                                     Int(MonitorModel.holdSeconds), NudgeCommand.altitudeLimits.lowerBound,
-                                    NudgeCommand.altitudeLimits.upperBound, SunSafety.keepOutDegrees))
+                                    NudgeCommand.altitudeLimits.upperBound,
+                                    model.solarMode != nil ? "Solar mode: no Sun keep-out" : String(format: "%.0f° from the Sun", SunSafety.keepOutDegrees)))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                         Button {
@@ -421,6 +422,9 @@ private struct GoToMenu: View {
             ForEach(SkyTarget.brightStars) { star in
                 Button(label(star)) { model.requestGoTo(star) }
             }
+            Divider()
+            // Asks to confirm a solar filter first, every time.
+            Button("\(label(.sun)): solar filter needed…", systemImage: "sun.max") { model.requestGoTo(.sun) }
         }
         .fixedSize()
         .disabled(model.driveProblem != nil)

@@ -1,11 +1,13 @@
 import Foundation
 
-/// Something scopeOS can point at: a star (J2000 position, brought up to date), the Moon or a planet.
+/// Something scopeOS can point at: a star (J2000 position, brought up to date), the Moon, a planet, or the Sun (only
+/// in Solar mode, after confirming a solar filter is on: see `MotionPolicy.solarMode`).
 public struct SkyTarget: Identifiable, Equatable, Sendable {
     public enum Kind: Equatable, Sendable {
         case star(j2000: Equatorial)
         case moon
         case planet(Planet)
+        case sun
         /// A fixed point on the sky, already for the equinox of date (e.g. one picked on the sky map).
         case point(Equatorial)
     }
@@ -31,6 +33,9 @@ public struct SkyTarget: Identifiable, Equatable, Sendable {
     }
 
     public static let moon = SkyTarget(name: "Moon", kind: .moon)
+    public static let sun = SkyTarget(name: "Sun", kind: .sun)
+
+    public var isSun: Bool { kind == .sun }
     public static func point(_ position: Equatorial, name: String = "Selected spot") -> SkyTarget {
         SkyTarget(name: name, kind: .point(position))
     }
@@ -50,6 +55,7 @@ public struct SkyTarget: Identifiable, Equatable, Sendable {
         case .star(let j2000): Astronomy.precess(j2000, to: date)
         case .moon: SolarSystem.moonPosition(at: date).position
         case .planet(let planet): SolarSystem.position(of: planet, at: date)
+        case .sun: Astronomy.sunPosition(at: date)
         case .point(let position): position
         }
     }
