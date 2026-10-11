@@ -90,6 +90,13 @@ public final class SimulatorServer: @unchecked Sendable {
         onEvent?(String(format: "Nudge received: %@ %+.2f°", motor.label, delta))
     }
 
+    /// A fast GoTo of a motor to `target` (24-bit fraction of a turn).
+    private func slew(_ motor: AuxDevice, to target: [UInt8]) {
+        let degrees = Double(Int(target[0]) << 16 | Int(target[1]) << 8 | Int(target[2])) / 16_777_216 * 360
+        let delta = mount.slew(motor, toRaw: degrees)
+        onEvent?(String(format: "Slew received: %@ %+.2f°", motor.label, delta))
+    }
+
     /// The simulated focus motor: position, calibrated limits, GoTo, slew-done and stop.
     fileprivate func replyToFocuser(_ packet: AuxPacket, reply: ([UInt8]) -> Void) {
         let now = Date()
@@ -215,6 +222,12 @@ public final class SimulatorServer: @unchecked Sendable {
             if packet.command == NudgeCommand.auxCommand, let motor = AuxDevice(rawValue: packet.destination),
                motors.contains(motor.rawValue), packet.data.count == 3 {
                 server.nudge(motor, to: packet.data)
+                reply([])
+                return
+            }
+            if packet.command == SlewCommand.auxCommand, let motor = AuxDevice(rawValue: packet.destination),
+               motors.contains(motor.rawValue), packet.data.count == 3 {
+                server.slew(motor, to: packet.data)
                 reply([])
                 return
             }

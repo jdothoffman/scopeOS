@@ -164,7 +164,8 @@ struct DriveTests {
     }
 
     @Test func endingAGoToStopsIt() async throws {
-        let (server, client, _) = try await fastMount()
+        // Slow enough that the slew (about 3 s for 60°) is still under way when it's ended.
+        let (server, client, _) = try await fastMount(secondsPerDegree: 0.3)
         defer { server.stop() }
         let held = HeldMove(client: client)
 
@@ -189,7 +190,7 @@ struct DriveTests {
             let reply: [UInt8]? = switch packet.command {
             case AuxQuery.slewDone.rawValue: [0xFF]
             case AuxQuery.getPosition.rawValue: Encode.fraction24(packet.destination == AuxDevice.azimuthMotor.rawValue ? azimuth : 40)
-            case NudgeCommand.auxCommand: []
+            case NudgeCommand.auxCommand, SlewCommand.auxCommand: []
             default: nil
             }
             return reply.map { AuxPacket(source: packet.destination, destination: AuxDevice.app.rawValue, command: packet.command, data: $0).encoded() } ?? []
@@ -197,17 +198,18 @@ struct DriveTests {
         return (AuxClient(transport: transport, motionPolicy: { .darkTestSky }), transport)
     }
 
-    private func gotoTargets(_ transport: ScriptedTransport) -> [Double] {
-        transport.written.compactMap(AuxPacket.decodeSingle).filter { $0.command == NudgeCommand.auxCommand }.map {
+    /// The targets of the slow steps (or, with `command`, of the slews) sent, in degrees.
+    private func gotoTargets(_ transport: ScriptedTransport, command: UInt8 = NudgeCommand.auxCommand) -> [Double] {
+        transport.written.compactMap(AuxPacket.decodeSingle).filter { $0.command == command }.map {
             Double(Int($0.data[0]) << 16 | Int($0.data[1]) << 8 | Int($0.data[2])) / 16_777_216 * 360
         }
     }
 
     @Test func aStepTowardATargetGoesTheChosenWayRound() async throws {
-        // Target 6° from 10°: going up means the long way, one full step at a time; going down arrives.
+        // Target 6° from 10°: going up means the long way, which starts with a slew of half a turn; going down arrives.
         let (up, upTransport) = stillMount(azimuth: 10)
         #expect(try await up.move(.azimuth, toward: 6, positive: true, onSend: {}) == false)
-        #expect(gotoTargets(upTransport).map { ($0 * 100).rounded() / 100 } == [15])
+        #expect(gotoTargets(upTransport, command: SlewCommand.auxCommand).map { ($0 * 100).rounded() / 100 } == [190])
 
         let (down, downTransport) = stillMount(azimuth: 10)
         #expect(try await down.move(.azimuth, toward: 6, positive: false, onSend: {}) == true)
