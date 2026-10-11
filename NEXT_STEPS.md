@@ -22,6 +22,8 @@ These need the telescope, and they decide whether some code needs adjusting. Use
 - [ ] **Tracking after moves.** Does tracking continue after a nudge, hold or Stop? If not, re-enable it from the hand controller (or add a fix).
 - [ ] **Stop during a hand-controller GoTo.** Does the scope stay stopped, or does the hand controller resume with a slow final approach? If it resumes, make Stop hold the motors for a few seconds.
 
+- [ ] **Go to the Sun** (with the solar filter fitted, by day): the checklist appears every time, the record file gets a dated line, the scope lands on or near the Sun, holds can centre it, and End Solar Mode brings the keep-out back (only moves away from the Sun allowed).
+
 **Focus motor (Celestron, on the AUX bus)**
 - [x] **Calibrated limits.** Checked: the real focus motor reports its calibrated range (2,421–45,990) with the limits command (`0x2C`).
 - [ ] **Focus moves.** A ±10 step should move the position by 10. If nothing happens, check the GoTo command (`0x02`) in the log.

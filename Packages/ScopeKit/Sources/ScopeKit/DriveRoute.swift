@@ -14,8 +14,10 @@ public enum DriveRoute {
 
     /// Legs from `pointing` to `target` (sky angles), one axis after the other: altitude first, unless that passes
     /// too close to the Sun and azimuth first doesn't. `turn` is how far to turn the azimuth, signed, and may be the
-    /// long way round (see `CableTrack`). Axes already within 0.01° are left out.
-    public static func legs(from pointing: Horizontal, to target: Horizontal, turn: Double, sun: Horizontal) -> Result<[HeldMove.Leg], Problem> {
+    /// long way round (see `CableTrack`). Axes already within 0.01° are left out. `sunKeepOut` is false only in Solar
+    /// mode (see `MotionPolicy.solarMode`).
+    public static func legs(from pointing: Horizontal, to target: Horizontal, turn: Double, sun: Horizontal,
+                            sunKeepOut: Bool = true) -> Result<[HeldMove.Leg], Problem> {
         let band = NudgeCommand.altitudeLimits
         if target.altitude < band.lowerBound { return .failure(.belowBand(altitude: target.altitude)) }
         if target.altitude > band.upperBound { return .failure(.aboveBand(altitude: target.altitude)) }
@@ -29,7 +31,7 @@ public enum DriveRoute {
             var at = pointing
             var problem: String?
             for (leg, degrees) in order where abs(degrees) >= 0.01 {
-                problem = problem ?? SunSafety.check(leg.axis, by: degrees, from: at, sun: sun)
+                if sunKeepOut { problem = problem ?? SunSafety.check(leg.axis, by: degrees, from: at, sun: sun) }
                 if leg.axis == .azimuth { at.azimuth = target.azimuth } else { at.altitude = target.altitude }
             }
             guard let problem else { return .success(order.filter { abs($0.degrees) >= 0.01 }.map(\.leg)) }

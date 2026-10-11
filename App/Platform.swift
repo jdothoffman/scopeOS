@@ -55,6 +55,16 @@ enum Platform {
         #endif
     }
 
+    /// The record of solar filter confirmations (`SolarLog`): Application Support on the Mac, where nothing tidies it
+    /// away; on iOS in the app's Documents, which the Files app shows.
+    nonisolated static var solarLogFile: URL {
+        #if os(macOS)
+        folder(.applicationSupportDirectory, "scopeOS").appendingPathComponent("Solar filter confirmations.txt")
+        #else
+        folder(.documentDirectory, "").appendingPathComponent("Solar filter confirmations.txt")
+        #endif
+    }
+
     nonisolated private static func folder(_ directory: FileManager.SearchPathDirectory, _ path: String) -> URL {
         FileManager.default.urls(for: directory, in: .userDomainMask)[0].appendingPathComponent(path, isDirectory: true)
     }

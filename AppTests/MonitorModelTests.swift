@@ -39,7 +39,8 @@ struct MonitorModelTests {
             location.manualLatitude = "38.89"
             location.manualLongitude = String(MonitorModelTests.longitude(sunHourAngle: sunHourAngle))
             location.applyManual()
-            model = MonitorModel(location: location, defaults: defaults, logFolder: logFolder)
+            model = MonitorModel(location: location, defaults: defaults, logFolder: logFolder,
+                                 solarLogFile: logFolder.appendingPathComponent("Solar filter confirmations.txt"))
 
             server = try SimulatorServer(flavor: .aux, port: 0, sky: SimulatedSky(trackSeconds: 600, slewSeconds: 5), secondsPerDegree: 0.02)
             try await server.start()
@@ -343,6 +344,58 @@ struct MonitorModelTests {
         camera.simulatorChanged()
         #expect(model.phase == .idle)
         #expect(!camera.cameras.contains { $0.id == SimulatedCamera.id })
+    }
+
+    /// Go to the Sun asks for the solar filter checklist every time, records each confirmation with the date and time,
+    /// and only then lifts the Sun rules (Solar mode), until it's ended or the connection goes.
+    @Test func goToTheSunNeedsTheFilterConfirmedEveryTimeAndRecordsIt() async throws {
+        // At local noon, with a home calibration that makes the simulated mount read 3° west of the Sun.
+        let observer = Observer(latitude: 38.89, longitude: Self.longitude(sunHourAngle: 0))
+        let sun = Astronomy.horizontal(Astronomy.sunPosition(at: .now), at: .now, observer: observer)
+        let home = AxisCalibration(azimuthOffset: 165 - (sun.azimuth - 3), altitudeOffset: 38 - sun.altitude)
+        let rig = try await Rig(home: home, sunHourAngle: 0)
+        defer { rig.tearDown() }
+        let model = rig.model
+        let record = rig.logFolder.appendingPathComponent("Solar filter confirmations.txt")
+        model.offerHome = false
+        model.useHome()
+        try await rig.waitUntil { model.status?.calibration == home }
+        model.movementEnabled = true
+        model.verticalEnabled = true
+        #expect(model.sunProblem(.azimuth, by: 1) != nil, "the Sun rules apply until the filter is confirmed")
+
+        model.requestGoTo(.sun)
+        #expect(model.pendingSolarGoTo, "asks for the checklist")
+        #expect(model.driving == nil && model.solarMode == nil, "nothing moves or unlocks before confirming")
+        #expect(!FileManager.default.fileExists(atPath: record.path))
+
+        model.confirmSolarGoTo()
+        #expect(model.solarMode != nil)
+        #expect(model.motionPolicy.solarMode)
+        let text = try String(contentsOf: record, encoding: .utf8)
+        #expect(text.contains("Solar filter confirmed by the user"), "\(text)")
+        let today = DateFormatter()
+        today.dateFormat = "yyyy-MM-dd" // local, as the record is
+        #expect(text.contains(today.string(from: .now)), "dated: \(text)")
+        try await rig.waitUntil(timeout: .seconds(20)) { model.driving == nil } failure: { "still driving: \(model.lastError ?? "")" }
+        #expect(model.lastError == nil, "\(String(describing: model.lastError))")
+        #expect(model.arrivedAt == "Sun")
+
+        // Asked again next time, even in Solar mode; each confirmation is another line.
+        model.requestGoTo(.sun)
+        #expect(model.pendingSolarGoTo)
+        model.confirmSolarGoTo()
+        let lines = try String(contentsOf: record, encoding: .utf8).split(separator: "\n").filter { $0.contains("Solar filter confirmed by the user") }
+        #expect(lines.count == 2)
+
+        model.endSolarMode()
+        #expect(model.solarMode == nil && !model.motionPolicy.solarMode)
+        #expect(model.driving == nil, "a Go to the Sun stops with Solar mode")
+        model.requestGoTo(.sun)
+        model.confirmSolarGoTo()
+        #expect(model.solarMode != nil)
+        model.disconnect()
+        #expect(model.solarMode == nil, "Disconnect ends Solar mode")
     }
 
     /// An abandoned connection attempt that only gives up after a new connection is made mustn't tear the new one

@@ -8,12 +8,17 @@ public struct MotionPolicy: Equatable, Sendable {
     public var observer: Observer?
     /// Refuse every move while the Sun is up.
     public var lockWhileSunUp: Bool
+    /// Solar observing: the user has confirmed a solar filter covers the front of the telescope, so neither the 30°
+    /// keep-out nor the daylight lock applies. A location is still needed, and the step cap and altitude band still
+    /// hold (`NudgeCommand`).
+    public var solarMode: Bool
     /// A fixed time to check against (tests); nil means the current time.
     public var date: Date?
 
-    public init(observer: Observer?, lockWhileSunUp: Bool = true, date: Date? = nil) {
+    public init(observer: Observer?, lockWhileSunUp: Bool = true, solarMode: Bool = false, date: Date? = nil) {
         self.observer = observer
         self.lockWhileSunUp = lockWhileSunUp
+        self.solarMode = solarMode
         self.date = date
     }
 
@@ -23,6 +28,7 @@ public struct MotionPolicy: Equatable, Sendable {
     /// Why moving `axis` by `degrees` from `pointing` (sky angles) isn't allowed, or nil if it is.
     public func problem(_ axis: NudgeAxis, by degrees: Double, from pointing: Horizontal) -> String? {
         guard let observer else { return "No location is set, so moves can't be kept away from the Sun." }
+        if solarMode { return nil }
         let now = date ?? .now
         let sun = Astronomy.horizontal(Astronomy.sunPosition(at: now), at: now, observer: observer)
         if lockWhileSunUp, SkyDarkness(sunAltitude: sun.altitude) == .day {

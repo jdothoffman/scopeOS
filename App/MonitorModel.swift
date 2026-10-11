@@ -181,8 +181,10 @@ final class MonitorModel {
 
     /// `defaults` and `logFolder` are where settings and the traffic log are kept (tests use their own).
     init(location: LocationModel, defaults: UserDefaults = .standard, logFolder: URL = TrafficLogFile.folder,
+         solarLogFile: URL = SolarLog.defaultFile,
          simulatorPorts: (aux: UInt16, handController: UInt16) = (simulatorAuxPort, simulatorHandControllerPort)) {
         self.location = location
+        solarLog = SolarLog(file: solarLogFile)
         self.simulatorPorts = simulatorPorts
         self.defaults = defaults
         logFile = TrafficLogFile(folder: logFolder)
@@ -246,6 +248,7 @@ final class MonitorModel {
         azimuthTrack = nil
         activeSettings = nil
         pausedSettings = nil
+        endSolarMode("Disconnected")
         movementEnabled = false
         heldMove = nil
         activeMove = nil
@@ -281,6 +284,8 @@ final class MonitorModel {
         planAfter = nil
         arrivedAt = nil
         pendingGoTo = nil // a move needs asking for afresh once back
+        pendingSolarGoTo = false
+        endSolarMode("scopeOS left the screen")
         append(TrafficEntry(.note, "Paused: scopeOS left the screen."))
         await running.value // closes the connection
         if task == nil { phase = .idle } // unless `resume()` has already started a new one
@@ -561,14 +566,17 @@ final class MonitorModel {
 
     /// The Sun rules the client enforces on every move. The checks here (`movementLock`, `sunProblem`) run first,
     /// to grey out controls and explain refusals; the client's are the guarantee.
-    var motionPolicy: MotionPolicy { MotionPolicy(observer: location.observer, lockWhileSunUp: sunLockWhileUp) }
+    var motionPolicy: MotionPolicy {
+        MotionPolicy(observer: location.observer, lockWhileSunUp: sunLockWhileUp, solarMode: solarMode != nil)
+    }
 
-    /// Why no move is possible right now regardless of direction, or nil.
-    func movementLock(at date: Date = .now) -> String? {
+    /// Why no move is possible right now regardless of direction, or nil. `solar` leaves out the daylight lock, as
+    /// Solar mode does.
+    func movementLock(at date: Date = .now, solar: Bool? = nil) -> String? {
         guard let observer = location.observer else {
             return "Set your location in the Site panel first, so moves can be kept away from the Sun."
         }
-        if sunLockWhileUp, SunSituation(observer: observer, date: date).darkness == .day {
+        if !(solar ?? (solarMode != nil)), sunLockWhileUp, SunSituation(observer: observer, date: date).darkness == .day {
             return "The Sun is up, so movement is locked. Turn off \"Lock while the Sun is up\" to override."
         }
         guard status?.horizontal != nil else { return "Waiting for a position reading." }
@@ -578,9 +586,59 @@ final class MonitorModel {
     /// Why a move of `axis` by `degrees` isn't allowed because of the Sun, or nil. Checked along the whole path.
     func sunProblem(_ axis: NudgeAxis, by degrees: Double, at date: Date = .now) -> String? {
         if let lock = movementLock(at: date) { return lock }
+        if solarMode != nil { return nil }
         guard let observer = location.observer, let pointing = status?.horizontal else { return nil }
         let sun = SunSituation(observer: observer, date: date).position
         return SunSafety.check(axis, by: degrees, from: pointing, sun: sun)
+    }
+
+    // MARK: Solar observing
+
+    /// While Solar mode is on: when the user last confirmed that a solar filter covers the front of the telescope. It
+    /// lifts the 30° keep-out and the daylight lock (`MotionPolicy.solarMode`), so the Sun can be reached and
+    /// followed. Never saved: it ends on Disconnect, when the connection drops, when scopeOS leaves the screen (iOS),
+    /// at quit, or with End Solar Mode.
+    private(set) var solarMode: Date?
+    /// True while the filter checklist is up, before Go to the Sun.
+    var pendingSolarGoTo = false
+    private let solarLog: SolarLog
+
+    /// The user has gone through the filter checklist: records it with the date and time, turns Solar mode on (or
+    /// keeps it on) and sets off for the Sun. Nothing moves if the record can't be written.
+    func confirmSolarGoTo() {
+        pendingSolarGoTo = false
+        let now = Date.now
+        do {
+            try solarLog.record(at: now, observer: location.observer, connection: connectionDescription)
+        } catch {
+            lastError = "Not going to the Sun: the solar filter confirmation couldn't be saved (\(error.localizedDescription))."
+            return
+        }
+        let started = solarMode == nil
+        solarMode = now
+        append(TrafficEntry(.note, "Solar filter confirmed by the user; recorded in \(solarLog.file.lastPathComponent)."))
+        if started { append(TrafficEntry(.note, "Solar mode on: the 30° Sun keep-out and the daylight lock are lifted.")) }
+        goTo(.sun)
+    }
+
+    /// Turns Solar mode off: the Sun rules apply again (moves away from the Sun are still allowed, so the scope can
+    /// always be backed off). A Go to the Sun in progress is cancelled.
+    func endSolarMode(_ reason: String = "Turned off") {
+        guard solarMode != nil else { return }
+        solarMode = nil
+        if driving?.destination == .star(.sun) { cancelDrive() }
+        append(TrafficEntry(.note, "Solar mode off (\(reason)): the 30° Sun keep-out applies again."))
+    }
+
+    /// What scopeOS is connected to, for the solar record.
+    private var connectionDescription: String {
+        if isSimulated { return "the built-in simulator" }
+        switch activeSettings {
+        case .wifiModule(let host, let port)?: return "the WiFi module at \(host):\(port)"
+        case .networkHandController(let host, let port)?: return "a network adapter at \(host):\(port)"
+        case .usbHandController(let path)?: return "the hand controller at \(path)"
+        case nil: return "nothing"
+        }
     }
 
     // MARK: Calibration (WiFi module)
@@ -713,7 +771,7 @@ final class MonitorModel {
 
     /// Why Go to `star` isn't possible right now, or nil.
     func goToProblem(_ star: SkyTarget) -> String? {
-        if let problem = driveProblem ?? movementLock() { return problem }
+        if let problem = driveProblem ?? movementLock(solar: star.isSun || solarMode != nil) { return problem }
         if case .failure(let problem) = route(to: .star(star)) { return problem.reason }
         return nil
     }
@@ -734,12 +792,20 @@ final class MonitorModel {
             lastError = "Can't go to \(star.name): \(problem)"
             return
         }
-        pendingGoTo = star
+        if star.isSun {
+            pendingSolarGoTo = true // the filter checklist, every time
+        } else {
+            pendingGoTo = star
+        }
     }
 
     /// Points the scope at `star`, worked out from the location and the time, like Return to home.
     func goTo(_ star: SkyTarget) {
         pendingGoTo = nil
+        if star.isSun, solarMode == nil {
+            lastError = "Not going to the Sun: confirm the solar filter first."
+            return
+        }
         if let problem = goToProblem(star) {
             lastError = "Not going to \(star.name): \(problem)"
             return
@@ -856,7 +922,9 @@ final class MonitorModel {
         let sun = SunSituation(observer: observer, date: .now).position
         let band = NudgeCommand.altitudeLimits
         let what = destination == .home ? "home" : destination.name
-        switch DriveRoute.legs(from: pointing, to: target, turn: turn, sun: sun) {
+        // The Sun itself can be planned for before Solar mode starts: its Go to only goes once the filter is confirmed.
+        let solar = solarMode != nil || destination == .star(.sun)
+        switch DriveRoute.legs(from: pointing, to: target, turn: turn, sun: sun, sunKeepOut: !solar) {
         case .success(let legs):
             return .success((legs, target))
         case .failure(.belowBand(let altitude)):
@@ -1032,6 +1100,7 @@ final class MonitorModel {
             // After a Disconnect, `disconnect()` has already reset all this, and it may belong to a newer connection.
             if !Task.isCancelled {
                 connectedClient = nil
+                endSolarMode("The connection was lost")
                 movementEnabled = false
                 heldMove = nil
                 activeMove = nil

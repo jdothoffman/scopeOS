@@ -92,6 +92,30 @@ struct SimulatedCameraTests {
         #expect(long > short * 3, "mean \(short) at 0.5 ms, \(long) at 5 ms")
     }
 
+    @Test func theSunIsAFilteredDiscDarkerAtTheLimb() async throws {
+        SimulatedSkyRenderer.prepareMoon()
+        while !SimulatedSkyRenderer.moonReady { try await Task.sleep(for: .milliseconds(50)) }
+        let noon = Date(timeIntervalSince1970: 1_791_651_600) // 2026-10-10 17:00 UTC: about noon in Washington
+        var sun = Astronomy.horizontal(Astronomy.sunPosition(at: noon), at: noon, observer: Self.observer)
+        func render(_ pointing: Horizontal) -> [UInt8] {
+            let view = SimulatedView(pointing: pointing, observer: Self.observer, date: noon, focusOffset: 0)
+            let camera = SimulatedCamera { view }
+            camera.set(.autoExposure, UVCCamera.manualExposureMode)
+            camera.set(.exposureTime, 10)
+            var pixels = [UInt8](repeating: 0, count: 640 * 480 * 4)
+            pixels.withUnsafeMutableBytes { camera.render(into: $0.baseAddress!, width: 640, height: 480, rowBytes: 640 * 4) }
+            return pixels
+        }
+        func green(_ pixels: [UInt8], _ x: Int, _ y: Int) -> Int { Int(pixels[(y * 640 + x) * 4 + 1]) }
+        // The middle of the disc, bright; then with the limb across the frame: bright inside, dark sky outside.
+        let middle = render(sun)
+        #expect(green(middle, 320, 240) > 100, "\(green(middle, 320, 240))")
+        sun.altitude -= 0.2667 // the Sun's upper limb at the centre of the frame
+        let limb = render(sun)
+        #expect(green(limb, 320, 300) > 30 && green(limb, 320, 300) < green(middle, 320, 240), "limb-darkened inside")
+        #expect(green(limb, 320, 150) < 10, "filtered: a dark sky outside")
+    }
+
     @Test func theCameraReportsTheExposureAutoChose() {
         let view = SimulatedView(pointing: Self.pointing(at: .jupiter), observer: Self.observer, date: Self.night, focusOffset: 0)
         let camera = SimulatedCamera { view }
