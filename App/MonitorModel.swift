@@ -1,5 +1,7 @@
 import Foundation
+#if DEBUG
 import NexStarSimulator
+#endif
 import Observation
 import ScopeKit
 
@@ -146,9 +148,11 @@ final class MonitorModel {
     private var task: Task<Void, Never>?
     private var activeSettings: ConnectionSettings?
     private var connectedClient: (any MountClient)?
+    #if DEBUG
     private var simulators: [SimulatorServer] = []
     /// The built-in simulator's telescope while it runs: the simulated camera looks through it.
     private(set) var simulatedMount: SimulatedMount?
+    #endif
 
     /// Connected (or connecting) to the built-in simulator rather than a real mount.
     var isSimulated: Bool { activeSettings.map(pointsAtSimulator) ?? false }
@@ -361,7 +365,9 @@ final class MonitorModel {
         }
     }
 
+    #if DEBUG
     /// Runs a simulated mount inside the app on 127.0.0.1 and, unless already connected elsewhere, connects to it.
+    /// Debug builds only: Release builds leave the simulator out altogether.
     func startSimulator() {
         guard simulatorState == .off else { return }
         simulatorState = .starting
@@ -376,6 +382,7 @@ final class MonitorModel {
         simulatorState = .off
         append(TrafficEntry(.note, "Simulator stopped."))
     }
+    #endif
 
     /// Nudges one axis in the given direction (+1 or −1) by that axis's chosen step.
     /// The client refuses if the mount is moving; the per-step caps and altitude band are enforced again on the
@@ -982,6 +989,7 @@ final class MonitorModel {
         }
     }
 
+    #if DEBUG
     /// Runs a parked mount, switched on at the home position (level, pointing north) with a focus motor, that only
     /// moves when told to; both protocols describe it. Connects to it over the WiFi module's protocol, the one that
     /// can move it, without touching the saved connection settings.
@@ -1014,15 +1022,20 @@ final class MonitorModel {
         guard !isRunning else { return }
         start(.wifiModule(host: "127.0.0.1", port: auxPort))
     }
+    #endif
 
     /// Whether `settings` lead to the built-in simulator while it runs.
     private func pointsAtSimulator(_ settings: ConnectionSettings) -> Bool {
+        #if DEBUG
         let loopback = ["127.0.0.1", "localhost", "::1"]
         switch settings {
         case .wifiModule(let host, let port), .networkHandController(let host, let port):
             return loopback.contains(host) && simulators.contains { $0.port == port }
         case .usbHandController: return false
         }
+        #else
+        false
+        #endif
     }
 
     private func makeSettings() throws -> ConnectionSettings {
@@ -1073,7 +1086,9 @@ final class MonitorModel {
                     let latest = try await client.readStatus()
                     guard !Task.isCancelled else { break }
                     status = latest
+                    #if DEBUG
                     simulatedMount?.setObserver(location.observer) // for its RA/Dec, should the location change
+                    #endif
                     trackAzimuth(latest)
                     offerHomeIfNeeded(latest)
                     if checkReturnHome, latest.calibration != nil, latest.calibration == home {

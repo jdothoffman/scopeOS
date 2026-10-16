@@ -1,5 +1,6 @@
 /// Debug builds show developer tools (the simulator, a DEBUG badge, the movement enable switches).
-/// Release builds hide them and keep movement enabled.
+/// Release builds hide them and keep movement enabled. The simulator's own code sits behind `#if DEBUG`, so it
+/// isn't just hidden in Release: nothing there can start it.
 enum BuildMode {
     #if DEBUG
     static let isDebug = true

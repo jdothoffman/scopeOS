@@ -1,6 +1,8 @@
 @preconcurrency import AVFoundation
 import Foundation
+#if DEBUG
 import NexStarSimulator
+#endif
 import Observation
 import ScopeCapture
 import ScopeKit
@@ -70,12 +72,20 @@ final class CameraModel {
     @ObservationIgnored private var frameWatch: Task<Void, Never>?
     @ObservationIgnored private var disconnectObserver: NSObjectProtocol?
     @ObservationIgnored private var uvc: (any CameraControlling)?
-    /// The camera on the built-in simulator's telescope, while the simulator runs.
+    #if DEBUG
+    /// The camera on the built-in simulator's telescope, while the simulator runs (Debug builds only).
     @ObservationIgnored private var simulated: (camera: SimulatedCamera, mount: SimulatedMount)?
+    #endif
     /// The simulated camera's latest frame (a real camera draws its own preview).
     private(set) var previewImage: CGImage?
 
-    var isSimulated: Bool { selectedCameraID == SimulatedCamera.id }
+    var isSimulated: Bool {
+        #if DEBUG
+        selectedCameraID == SimulatedCamera.id
+        #else
+        false
+        #endif
+    }
     @ObservationIgnored private var pendingControls: [UVCControl: Int] = [:]
     @ObservationIgnored private var applyingControls = false
     @ObservationIgnored private var recordingWaiters: [CheckedContinuation<Void, Never>] = []
@@ -116,12 +126,14 @@ final class CameraModel {
 
     func refreshCameras() {
         var found = CaptureEngine.cameras()
+        #if DEBUG
         if let mount = monitor.simulatedMount {
             if simulated?.mount !== mount { simulated = (SimulatedCamera(view: Self.view(through: mount)), mount) }
             found.insert(SimulatedCamera.camera, at: 0)
         } else {
             simulated = nil
         }
+        #endif
         cameras = found
         if running, !cameras.contains(where: { $0.id == selectedCameraID }) { stopPreview() }
         let saved = defaults.string(forKey: "cameraID")
@@ -134,8 +146,12 @@ final class CameraModel {
     /// The simulator started or stopped: its camera comes and goes with it, and is chosen when it arrives.
     func simulatorChanged() {
         refreshCameras()
+        #if DEBUG
         if monitor.simulatedMount != nil, !stats.recording { selectedCameraID = SimulatedCamera.id }
+        #endif
     }
+
+    #if DEBUG
 
     /// What the simulated camera sees: through the simulated telescope, at its focus.
     private nonisolated static func view(through mount: SimulatedMount) -> @Sendable () -> SimulatedView? {
@@ -146,9 +162,18 @@ final class CameraModel {
                                  focusOffset: mount.focuserPosition(at: now) - SimulatedMount.bestFocus)
         }
     }
+    #endif
 
     private func loadFormats() {
-        formats = isSimulated ? SimulatedCamera.formats : selectedCameraID.map(CaptureEngine.formats) ?? []
+        #if DEBUG
+        if isSimulated {
+            formats = SimulatedCamera.formats
+        } else {
+            formats = selectedCameraID.map(CaptureEngine.formats) ?? []
+        }
+        #else
+        formats = selectedCameraID.map(CaptureEngine.formats) ?? []
+        #endif
         if !formats.contains(where: { $0.id == selectedFormatID }) {
             let saved = defaults.string(forKey: "cameraFormat")
             // Full-color YUVS at 640×480 suits planets and fits within USB 2.
@@ -163,6 +188,7 @@ final class CameraModel {
         resetFocusAid()
         starting = true
         problem = nil
+        #if DEBUG
         if isSimulated, let simulated, let format = selectedFormatID {
             defer { starting = false }
             do {
@@ -173,6 +199,7 @@ final class CameraModel {
             }
             return
         }
+        #endif
         Task {
             defer { starting = false }
             guard await CaptureEngine.requestAccess() else {
@@ -259,6 +286,7 @@ final class CameraModel {
             uvc = nil
             return
         }
+        #if DEBUG
         if isSimulated, let camera = simulated?.camera {
             uvc = camera
             for control in UVCControl.allCases {
@@ -269,6 +297,7 @@ final class CameraModel {
             }
             return
         }
+        #endif
         Task {
             let (camera, ranges, values) = await Task.detached { () -> ((any CameraControlling)?, [UVCControl: UVCRange], [UVCControl: Int]) in
                 guard let camera = UVCCamera(captureDeviceID: id) else { return (nil, [:], [:]) }

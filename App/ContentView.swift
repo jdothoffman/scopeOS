@@ -635,14 +635,14 @@ struct ConnectionPanel: View {
     }
 
     @ViewBuilder private var simulatorButton: some View {
-        if BuildMode.isDebug {
-            Button(model.simulatorState == .off ? "Start Simulator" : "Stop Simulator",
-                   systemImage: model.simulatorState == .off ? "play.circle" : "stop.circle") {
-                model.simulatorState == .off ? model.startSimulator() : model.stopSimulator()
-            }
-            .disabled(model.simulatorState == .starting)
-            .help("Runs a pretend mount, with a focus motor and a camera, inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)), and connects to it over the WiFi module's protocol so it can be moved.")
+        #if DEBUG
+        Button(model.simulatorState == .off ? "Start Simulator" : "Stop Simulator",
+               systemImage: model.simulatorState == .off ? "play.circle" : "stop.circle") {
+            model.simulatorState == .off ? model.startSimulator() : model.stopSimulator()
         }
+        .disabled(model.simulatorState == .starting)
+        .help("Runs a pretend mount, with a focus motor and a camera, inside scopeOS on 127.0.0.1 (AUX port \(MonitorModel.simulatorAuxPort), hand controller port \(MonitorModel.simulatorHandControllerPort)), and connects to it over the WiFi module's protocol so it can be moved.")
+        #endif
     }
 }
 
