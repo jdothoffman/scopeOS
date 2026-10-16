@@ -121,7 +121,10 @@ struct PointingCard: View {
                 if isAux {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         if let calibration = status?.calibration {
-                            Label(String(format: "Calibrated (motor offsets %.1f° az, %.1f° alt)", calibration.azimuthOffset, calibration.altitudeOffset),
+                            // How it was calibrated, once the model has it (a reading can arrive just before).
+                            let basis = model.calibrationBasis.map { ": \($0.summary)" } ?? ""
+                            Label(String(format: "Calibrated%@ (motor offsets %.1f° az, %.1f° alt)",
+                                         basis, calibration.azimuthOffset, calibration.altitudeOffset),
                                   systemImage: "checkmark.seal")
                                 .foregroundStyle(Theme.ok)
                         } else {
@@ -408,7 +411,7 @@ struct ControlCard: View {
             Button("Return to home") { model.returnHome() }
             Button("Not now", role: .cancel) {}
         } message: {
-            Text("Drive it back now? It moves one axis at a time at the mount's normal slewing speed, finishing in small steps, and Stop cancels it.")
+            Text("Drive it back now? It moves one axis at a time at the mount's normal slewing speed, finishing in small steps, and Stop cancels it.\n\n\(model.homeSummary ?? "")")
         }
     }
 }
@@ -451,17 +454,26 @@ private struct ReturnHomeButton: View {
 
     var body: some View {
         if model.home != nil {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                if model.isReturningHome {
-                    Button("Cancel return") { model.cancelDrive() }
-                } else {
-                    Button("Return to home") { model.returnHome() }
-                        .disabled(model.returnHomeProblem != nil)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    if model.isReturningHome {
+                        Button("Cancel return") { model.cancelDrive() }
+                    } else {
+                        Button("Return to home") { model.returnHome() }
+                            .disabled(model.returnHomeProblem != nil)
+                    }
+                    if model.driving == nil, !model.isAtHome, let problem = model.returnHomeProblem {
+                        Text(problem)
+                            .font(.caption)
+                            .foregroundStyle(Theme.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                if model.driving == nil, !model.isAtHome, let problem = model.returnHomeProblem {
-                    Text(problem)
+                // What home is and what it rests on (Calibrate › level, true north or Polaris), saved with it.
+                if let summary = model.homeSummary {
+                    Label(summary, systemImage: "house")
                         .font(.caption)
-                        .foregroundStyle(Theme.textTertiary)
+                        .foregroundStyle(model.isReturningHome ? Theme.accent : Theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
