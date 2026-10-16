@@ -29,12 +29,14 @@ These need the telescope, and they decide whether some code needs adjusting. Use
 - [ ] **Tracking after moves.** Does tracking continue after a nudge, hold or Stop? If not, re-enable it from the hand controller (or add a fix).
 - [ ] **Stop during a hand-controller GoTo.** Does the scope stay stopped, or does the hand controller resume with a slow final approach? If it resumes, make Stop hold the motors for a few seconds.
 
+- [ ] **Go to the Moon and a planet.** Lands on it. So far only the tests check these positions (the planets against JPL Horizons, the Moon for parallax).
 - [ ] **Go to the Sun** (with the solar filter fitted, by day): the checklist appears every time, the record file gets a dated line, the scope lands on or near the Sun, holds can centre it, and End Solar Mode brings the keep-out back (only moves away from the Sun allowed).
 
 **Focus motor (Celestron, on the AUX bus)**
 - [x] **Calibrated limits.** Checked: the real focus motor reports its calibrated range (2,421–45,990) with the limits command (`0x2C`).
 - [ ] **Focus moves.** A ±10 step should move the position by 10. If nothing happens, check the GoTo command (`0x02`) in the log.
 - [ ] **Direction.** "+" means higher position numbers; note whether that is focusing in or out.
+- [ ] **Focus aid on a real target** (a distant object by day, a bright star or planet at night): the sharpness peaks where the image looks sharpest, and Go to best returns there.
 
 **iPhone and iPad** (so far only in the iOS Simulator)
 - [ ] **Find** on the iPhone's WiFi (home or Starlink network) finds the module; connecting on the module's own network at 1.2.3.4.
@@ -51,36 +53,35 @@ These need the telescope, and they decide whether some code needs adjusting. Use
 
 ## 2. Features to build next
 
-Also discussed:
-
-- **Send location and time to the hand controller** over USB (official `W` / `H` commands, read back with `w` / `h`), before StarSense alignment.
-- **Before making the repo public:** a tested-on-hardware status table, GitHub Actions running the tests. (License, safety notice, commit email and test location: done.)
-
-
 In rough order of value:
 
-1. **Keep a Go to target centred.** scopeOS doesn't track: after a Go to, re-send small bounded GoTos every few seconds to follow the star (same steps and Sun checks). Then planets and the Moon in the Go to list (they need their own position calculations).
-1. ~~**Focus aid.**~~ Built: live sharpness, % of best, trend, and Go to best. Still to check on a real target (a distant object by day, a bright star or planet at night). **Next: automatic focus** that steps through focus and settles on the peak, bounded by the focus motor's calibrated range.
-2. **Region of interest.** Record only a box around the planet: smaller files, faster stacking.
-3. **Keep the planet centred.** Use the camera image to nudge the mount automatically (within all the existing motion limits).
-4. **First-light hardware check screen.** A guided version of section 1 inside the app.
-5. **Tonight planner.** Planets, Moon and showpiece objects with altitude and rise/set times, plus darkness times and cloud cover.
-6. **Moon on the sky chart**, with phase.
-7. **Link-loss alert.** Sound and banner if the WiFi connection drops, especially during a move.
-8. ~~**Clear message when SkyPortal holds the WiFi module**~~ Done: says nothing answered and asks whether SkyPortal is connected; retries back off from 3 s to 30 s.
+1. **Keep a Go to target centred.** scopeOS doesn't track: after a Go to (star, planet or Moon), re-send small bounded GoTos every few seconds to follow it, with the same steps, altitude band and Sun checks. It ends on Stop, any manual move, Disconnect, or leaving the screen (iOS).
+2. **Automatic focus.** Step through focus and settle on the sharpest point, using the focus aid's sharpness and bounded by the focus motor's calibrated range. Wait until the focus motor's moves and direction are checked on the scope (section 1).
+3. **Link-loss alert.** Sound and banner if the WiFi connection drops, especially during a move.
+4. **Region of interest.** Record only a box around the planet: smaller files, faster stacking.
+5. **Keep the planet centred.** Use the camera image to nudge the mount automatically (within all the existing motion limits). Builds on 1 and 4.
+6. **First-light hardware check screen.** A guided version of section 1 inside the app.
+7. **Moon phase on the sky map.** The Moon is drawn as a plain disc; Tonight already knows how much of it is lit.
+8. **Cloud cover in Tonight.** Tonight has the targets, their best times and darkness, but no weather.
+9. **Snapshot button** (#24) and **quick stack** (#25).
+10. **Send location and time to the hand controller** over USB (official `W` / `H` commands, read back with `w` / `h`), before StarSense alignment.
 
 Bigger projects, discussed but not started:
 
 - **GoTo over USB** (hand-controller protocol) with safeguards: no GoTo while the Sun is up, 30° Sun keep-out, 0°–75° altitude, alignment required, confirmation dialog, its own enable switch.
 - **scopeOS's own alignment** (2–3 stars), giving RA/Dec and GoTo over WiFi.
 - **SkyPortal recording relay**, to see what StarSense Auto Align sends before deciding whether to support it.
+- **Telescope camera on iPad** (#36).
 - **Dedicated planetary camera support** (ZWO / Player One SDKs) if the camera is upgraded; FireCapture already handles those on the Mac.
+
+Already built (kept here so they aren't proposed again): the focus aid (sharpness, % of best, trend, Go to best), planets and the Moon in Go to, the Tonight planner, the Moon and planets on the sky map, Solar mode with the filter checklist, slewing Go to and Return to home, the iPhone and iPad app, the simulated mount and camera, and the SkyPortal message (nothing answered; retries back off from 3 s to 30 s).
 
 ## 3. Housekeeping
 
-- ~~**Tests for the app's own logic.**~~ Done: route planning, cable tracking and connection messages are tested in ScopeKit, and `AppTests` runs `MonitorModel` against the simulator (holds, enable switches, daylight lock, Return to home, Go to refusals) with `xcodebuild test -scheme ScopeOS`. Not yet covered: the camera model (focus history, recording notes, disk space).
+- **Setup tab fixes:** the tab bar shows ⌘3 for Setup but it's ⌘4 (#44); the tab overflows the window at its minimum size (#43).
+- **Before making the repo public:** the README's tested-on-hardware table (#28). (License, safety notice, commit email, test location and GitHub Actions running the tests: done.)
+- **Tests for the camera model** (focus history, recording notes, disk space). Route planning, cable tracking and connection messages are tested in ScopeKit, and `AppTests` runs `MonitorModel` against the simulator with `xcodebuild test -scheme ScopeOS`.
 - **Night vision check.** Confirm system controls (buttons, switches, text fields) also turn red; the camera preview has its own red filter.
-- **An install script** that builds a Release copy into /Applications. (App icon: done; redraw it with `swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset`.)
 - **CLAUDE.md** recording the safety rules: every command checked byte for byte against an exact allowlist immediately before it is written; moves always bounded (a GoTo to a nearby target, never a free-running rate); Stop always available; safety switches reset on launch and disconnect.
 
 ## Handy commands
@@ -91,4 +92,13 @@ swift test                      # all library tests
 swift run scopesim              # simulated mount (with focus motor) on 127.0.0.1:2000/2001
 swift run scopeos-cli wifi --verbose   # terminal monitor, prints every byte
 swift run scopecap controls     # camera controls and a write test
+```
+
+From the repo root, for the app:
+
+```sh
+scripts/run.sh                  # debug build (simulator, DEBUG badge, movement switches)
+scripts/run.sh release          # release build, launched from build.noindex
+scripts/run.sh install          # release build copied to /Applications (run again to update it)
+swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset   # redraw the app icon
 ```
