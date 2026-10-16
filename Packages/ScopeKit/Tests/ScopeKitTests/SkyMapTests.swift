@@ -43,11 +43,17 @@ struct SkyMapTests {
         }
     }
 
-    @Test func theMoonSitsLowerThanSeenFromTheEarthsCentre() {
-        let (position, _) = SolarSystem.moonPosition(at: date)
+    /// Through a day, so the Moon is seen low and high: the drop is asin(cos(altitude) / distance), about 0.95° at the
+    /// horizon and less higher up. A degrees-for-radians slip would still land between 0° and 1°, so check the value.
+    @Test(arguments: Array(stride(from: 0.0, to: 86_400, by: 7_200)))
+    func theMoonSitsLowerThanSeenFromTheEarthsCentre(_ offset: TimeInterval) {
+        let date = date.addingTimeInterval(offset)
+        let (position, earthRadii) = SolarSystem.moonPosition(at: date)
         let geocentric = Astronomy.horizontal(position, at: date, observer: observer)
         let topocentric = SkyTarget.moon.horizontal(at: date, observer: observer)
         let drop = geocentric.altitude - topocentric.altitude
+        let expected = asin(cos(geocentric.altitude * .pi / 180) / earthRadii) * 180 / .pi
+        #expect(abs(drop - expected) < 1e-9, "parallax \(drop)° at \(geocentric.altitude)°, expected \(expected)°")
         #expect(drop > 0 && drop < 1.0, "parallax \(drop)°")
         #expect(abs(geocentric.azimuth - topocentric.azimuth) < 1e-9)
     }
