@@ -82,7 +82,6 @@ Already built (kept here so they aren't proposed again): the focus aid (sharpnes
 - **Before making the repo public:** the README's tested-on-hardware table (#28). (License, safety notice, commit email, test location and GitHub Actions running the tests: done.)
 - **Tests for the camera model** (focus history, recording notes, disk space). Route planning, cable tracking and connection messages are tested in ScopeKit, and `AppTests` runs `MonitorModel` against the simulator with `xcodebuild test -scheme ScopeOS`.
 - **Night vision check.** Confirm system controls (buttons, switches, text fields) also turn red; the camera preview has its own red filter.
-- **An install script** that builds a Release copy into /Applications. (App icon: done; redraw it with `swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset`.)
 - **CLAUDE.md** recording the safety rules: every command checked byte for byte against an exact allowlist immediately before it is written; moves always bounded (a GoTo to a nearby target, never a free-running rate); Stop always available; safety switches reset on launch and disconnect.
 
 ## Handy commands
@@ -93,4 +92,13 @@ swift test                      # all library tests
 swift run scopesim              # simulated mount (with focus motor) on 127.0.0.1:2000/2001
 swift run scopeos-cli wifi --verbose   # terminal monitor, prints every byte
 swift run scopecap controls     # camera controls and a write test
+```
+
+From the repo root, for the app:
+
+```sh
+scripts/run.sh                  # debug build (simulator, DEBUG badge, movement switches)
+scripts/run.sh release          # release build, launched from build.noindex
+scripts/run.sh install          # release build copied to /Applications (run again to update it)
+swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset   # redraw the app icon
 ```
