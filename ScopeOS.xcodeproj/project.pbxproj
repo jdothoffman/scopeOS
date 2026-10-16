@@ -21,6 +21,7 @@
 		346ACD6AE50D13CBCEDB8AF7 /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163291358AE3B6DDE5305D37 /* Cards.swift */; };
 		34B22E4B8730A1B548C5A21D /* TonightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D9C3EA0992169ECD9ECBE6 /* TonightTests.swift */; };
 		3521D34C16B25F945DD0C8BB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30ABAA3175E3553C4F24D81 /* Theme.swift */; };
+		37861A54C5374934A1EB51EA /* CalibrationBasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53DBACAFB1B4817242764DF /* CalibrationBasis.swift */; };
 		3B2CDF2D650179160C414B01 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 720036D9D1CAF4C243CF0687 /* CameraPreview.swift */; };
 		3CE6A262AAE94A576AE087D7 /* LocationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70E7089604AA8EE5FD2BAE5 /* LocationModel.swift */; };
 		4155614AD3B3DE4F44242BAF /* MonitorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C89A4896E97BA3F3D9DCA6 /* MonitorModel.swift */; };
@@ -39,6 +40,8 @@
 		7133AD04279BA61B9863DAFB /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 720036D9D1CAF4C243CF0687 /* CameraPreview.swift */; };
 		71EC58F48DDA5757E5D07807 /* SnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5F43972A5A1BCD8099BC78 /* SnapshotTests.swift */; };
 		75FBB5354DBE0EF5D08A18B2 /* Features.plist in Resources */ = {isa = PBXBuildFile; fileRef = 079592A93F2302B3A77C1A20 /* Features.plist */; };
+		766237AFCCFF84986E90F87F /* CalibrationBasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53DBACAFB1B4817242764DF /* CalibrationBasis.swift */; };
+		77CFDD3AB8B613AC556B0994 /* CalibrationBasis.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53DBACAFB1B4817242764DF /* CalibrationBasis.swift */; };
 		79E57933A56B26B0962AB327 /* ScopeCapture in Frameworks */ = {isa = PBXBuildFile; productRef = C0E76250125FBBE8DAAA0071 /* ScopeCapture */; };
 		815E1799582207A0262A3D82 /* Assistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279BFE345B1FEACA3F318048 /* Assistant.swift */; };
 		88E7A8D3C99879713D7713EC /* TonightPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2B90B9C1FE487D83C4B458 /* TonightPlanner.swift */; };
@@ -117,6 +120,7 @@
 		9DDE294B68D6001B04290F78 /* ScopeOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeOSApp.swift; sourceTree = "<group>"; };
 		A3486271D808CF46F47B5FED /* ScopeOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScopeOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3CF139BB9FFBB121C247422 /* ScopeOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ScopeOS.entitlements; sourceTree = "<group>"; };
+		A53DBACAFB1B4817242764DF /* CalibrationBasis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationBasis.swift; sourceTree = "<group>"; };
 		A873763520B45A6F2D418A8A /* CameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraModel.swift; sourceTree = "<group>"; };
 		AB94DEFEBA908068B100AAEA /* CameraCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCard.swift; sourceTree = "<group>"; };
 		B30ABAA3175E3553C4F24D81 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -195,6 +199,7 @@
 				37EC60E8C1FE19414C83FF1E /* Assets.xcassets */,
 				279BFE345B1FEACA3F318048 /* Assistant.swift */,
 				CF3C4E74C8DBE15E3482A114 /* BuildMode.swift */,
+				A53DBACAFB1B4817242764DF /* CalibrationBasis.swift */,
 				AB94DEFEBA908068B100AAEA /* CameraCard.swift */,
 				A873763520B45A6F2D418A8A /* CameraModel.swift */,
 				163291358AE3B6DDE5305D37 /* Cards.swift */,
@@ -402,6 +407,7 @@
 			files = (
 				815E1799582207A0262A3D82 /* Assistant.swift in Sources */,
 				EB8CE0DA4D292CA3AEDD331F /* BuildMode.swift in Sources */,
+				77CFDD3AB8B613AC556B0994 /* CalibrationBasis.swift in Sources */,
 				C2F373CBF8A1654B2F5A556F /* CameraCard.swift in Sources */,
 				F033D50282722920F60AE33A /* CameraModel.swift in Sources */,
 				7133AD04279BA61B9863DAFB /* CameraPreview.swift in Sources */,
@@ -434,6 +440,7 @@
 			files = (
 				BB005BAA44376A82122033B0 /* Assistant.swift in Sources */,
 				D954DF709AF3F99AB7915FD6 /* BuildMode.swift in Sources */,
+				37861A54C5374934A1EB51EA /* CalibrationBasis.swift in Sources */,
 				C15C39E9CB48D1C503698498 /* CameraCard.swift in Sources */,
 				F3248B78130529DC2A9EE77F /* CameraModel.swift in Sources */,
 				3B2CDF2D650179160C414B01 /* CameraPreview.swift in Sources */,
@@ -462,6 +469,7 @@
 			files = (
 				A68DC5968ACDDDE2E00BEC68 /* Assistant.swift in Sources */,
 				CC3DFDC34DF110CFFD875559 /* BuildMode.swift in Sources */,
+				766237AFCCFF84986E90F87F /* CalibrationBasis.swift in Sources */,
 				2E6A64B9D804D81D84B036AE /* CameraCard.swift in Sources */,
 				95230455AC492CE27B412330 /* CameraModel.swift in Sources */,
 				BADE7E0C182821724674EE67 /* CameraPreview.swift in Sources */,

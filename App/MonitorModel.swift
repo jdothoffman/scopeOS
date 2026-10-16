@@ -123,10 +123,15 @@ final class MonitorModel {
     /// Calibration of the WiFi module's motor angles, kept across automatic reconnects (the motors keep counting
     /// unless the mount is switched off) and cleared by Disconnect.
     private(set) var calibration: AxisCalibration?
+    /// How `calibration` was set, axis by axis; nil while uncalibrated.
+    private(set) var calibrationBasis: CalibrationBasis?
     /// A calibration saved for when the mount is switched on at its home marks (the elevation index on the fork
     /// arm, plus a mark between the arm and the base), so it can be reused without calibrating again. Kept between
     /// launches, and only applied once the user confirms the mount was switched on there.
     private(set) var home: AxisCalibration?
+    /// How the home calibration was set, and when it was saved (unknown for one saved before these were kept).
+    private(set) var homeBasis: CalibrationBasis?
+    private(set) var homeSaved: Date?
     /// True while asking whether the mount was switched on at its home marks.
     var offerHome = false
     /// Whether this connection has already asked, so declining isn't asked again on an automatic reconnect.
@@ -201,6 +206,10 @@ final class MonitorModel {
         if let saved = defaults.dictionary(forKey: "homeCalibration"),
            let azimuth = saved["azimuthOffset"] as? Double, let altitude = saved["altitudeOffset"] as? Double {
             home = AxisCalibration(azimuthOffset: azimuth, altitudeOffset: altitude)
+            homeBasis = CalibrationBasis(
+                azimuth: (saved["azimuthBasis"] as? String).flatMap(CalibrationBasis.Source.init) ?? .unrecorded,
+                altitude: (saved["altitudeBasis"] as? String).flatMap(CalibrationBasis.Source.init) ?? .unrecorded)
+            homeSaved = saved["saved"] as? Date
         }
         refreshPorts()
     }
@@ -242,6 +251,7 @@ final class MonitorModel {
         task = nil
         connectedClient = nil
         calibration = nil // the mount may be switched off or moved before the next connection
+        calibrationBasis = nil
         offerHome = false
         offerReturnHome = false
         checkReturnHome = false
@@ -653,10 +663,10 @@ final class MonitorModel {
     var isCalibrated: Bool { calibration != nil }
 
     /// The tube is level now (checked with a spirit level or the iPhone's Measure app).
-    func calibrateLevel() { calibrate(azimuth: nil, altitude: 0, what: "Altitude calibrated: the tube is level.") }
+    func calibrateLevel() { calibrate(azimuth: nil, altitude: 0, from: .level, what: "Altitude calibrated: the tube is level.") }
 
     /// The tube points to true north now.
-    func calibrateNorth() { calibrate(azimuth: 0, altitude: nil, what: "Azimuth calibrated: the tube points north.") }
+    func calibrateNorth() { calibrate(azimuth: 0, altitude: nil, from: .trueNorth, what: "Azimuth calibrated: the tube points north.") }
 
     /// Polaris is centred in the eyepiece or camera: sets both axes from where Polaris is right now.
     func calibratePolaris() {
@@ -666,7 +676,7 @@ final class MonitorModel {
         }
         let now = Date.now
         let polaris = Astronomy.horizontal(SkyTarget.polaris.position(at: now), at: now, observer: observer)
-        calibrate(azimuth: polaris.azimuth, altitude: polaris.altitude, what: "Calibrated on Polaris.")
+        calibrate(azimuth: polaris.azimuth, altitude: polaris.altitude, from: .polaris, what: "Calibrated on Polaris.")
     }
 
     /// Applies the saved home calibration: the mount was switched on at its home marks.
@@ -674,11 +684,12 @@ final class MonitorModel {
         offerHome = false
         guard let home, let client = connectedClient else { return }
         calibration = home
+        calibrationBasis = homeBasis ?? .unrecorded
         checkReturnHome = true
         Task {
             await client.setCalibration(home)
-            append(TrafficEntry(.note, String(format: "Using the home calibration (motor offsets %.2f° az, %.2f° alt).",
-                                              home.azimuthOffset, home.altitudeOffset)))
+            append(TrafficEntry(.note, String(format: "Using the home calibration (motor offsets %.2f° az, %.2f° alt; %@).",
+                                              home.azimuthOffset, home.altitudeOffset, (homeBasis ?? .unrecorded).summary)))
         }
     }
 
@@ -686,13 +697,20 @@ final class MonitorModel {
     /// home marks, since the offsets count from wherever the motors were at power-on.
     func saveHome() {
         guard let calibration else { return }
+        let basis = calibrationBasis ?? .unrecorded, now = Date.now
         home = calibration
-        defaults.set(["azimuthOffset": calibration.azimuthOffset, "altitudeOffset": calibration.altitudeOffset], forKey: "homeCalibration")
-        append(TrafficEntry(.note, "Saved this calibration as the home position."))
+        homeBasis = basis
+        homeSaved = now
+        defaults.set(["azimuthOffset": calibration.azimuthOffset, "altitudeOffset": calibration.altitudeOffset,
+                      "azimuthBasis": basis.azimuth.rawValue, "altitudeBasis": basis.altitude.rawValue, "saved": now],
+                     forKey: "homeCalibration")
+        append(TrafficEntry(.note, "Saved this calibration as the home position (\(basis.summary))."))
     }
 
     func forgetHome() {
         home = nil
+        homeBasis = nil
+        homeSaved = nil
         offerHome = false
         defaults.removeObject(forKey: "homeCalibration")
         append(TrafficEntry(.note, "Forgot the home position."))
@@ -744,6 +762,16 @@ final class MonitorModel {
 
     /// The home position in sky angles: where the motors read zero under the home calibration.
     var homePointing: Horizontal? { home?.sky(fromMotor: Horizontal(azimuth: 0, altitude: 0)) }
+
+    /// What the home position is and what it rests on: "Home: 0.0° az (N), 0.0° alt; azimuth from true north,
+    /// altitude from a level tube; saved 9 Oct 2026."
+    var homeSummary: String? {
+        guard let pointing = homePointing else { return nil }
+        var text = String(format: "Home: %.1f° az (%@), %.1f° alt; %@", pointing.azimuth,
+                          SkyFormat.compassPoint(pointing.azimuth), pointing.altitude, (homeBasis ?? .unrecorded).summary)
+        if let homeSaved { text += "; saved \(homeSaved.formatted(date: .abbreviated, time: .omitted))" }
+        return text + "."
+    }
 
     /// Whether the scope points at the home position, to within 0.1°.
     var isAtHome: Bool {
@@ -968,6 +996,7 @@ final class MonitorModel {
 
     func clearCalibration() {
         calibration = nil
+        calibrationBasis = nil
         guard let client = connectedClient else { return }
         Task {
             await client.setCalibration(nil)
@@ -975,12 +1004,16 @@ final class MonitorModel {
         }
     }
 
-    private func calibrate(azimuth: Double?, altitude: Double?, what: String) {
+    private func calibrate(azimuth: Double?, altitude: Double?, from source: CalibrationBasis.Source, what: String) {
         guard canNudge, let client = connectedClient else { return }
         releaseArrow()
         Task {
             do {
-                calibration = try await client.calibrate(azimuth: azimuth, altitude: altitude)
+                let calibrated = try await client.calibrate(azimuth: azimuth, altitude: altitude)
+                // An axis left alone keeps how it was set: from switching on, if nothing was calibrated before.
+                let before = calibration == nil ? .switchedOn : calibrationBasis ?? .unrecorded
+                calibration = calibrated
+                calibrationBasis = before.setting(azimuth: azimuth != nil, altitude: altitude != nil, from: source)
                 lastError = nil
                 append(TrafficEntry(.note, what))
             } catch {

@@ -193,6 +193,40 @@ struct MonitorModelTests {
         #expect(model.log.contains { $0.text == "Back at the home position." })
     }
 
+    /// The home position keeps how each axis was calibrated (level, true north, Polaris) and shows it after a relaunch.
+    @Test func theHomePositionRemembersHowItWasCalibrated() async throws {
+        let rig = try await Rig(home: AxisCalibration(azimuthOffset: -3, altitudeOffset: -2))
+        defer { rig.tearDown() }
+        let model = rig.model
+        model.offerHome = false
+        #expect(model.homeBasis == .unrecorded, "saved before scopeOS kept track")
+        #expect(model.homeSaved == nil)
+        #expect(model.calibrationBasis == nil)
+
+        model.calibrateLevel()
+        try await Rig.waitUntil { model.calibration != nil }
+        #expect(model.calibrationBasis == CalibrationBasis(azimuth: .switchedOn, altitude: .level))
+        model.calibrateNorth()
+        try await Rig.waitUntil { model.calibrationBasis?.azimuth == .trueNorth }
+        #expect(model.calibrationBasis == CalibrationBasis(azimuth: .trueNorth, altitude: .level))
+        model.saveHome()
+
+        let relaunched = MonitorModel(location: rig.location, defaults: rig.defaults, logFolder: rig.logFolder,
+                                      solarLogFile: rig.logFolder.appendingPathComponent("Solar filter confirmations.txt"))
+        #expect(relaunched.homeBasis == CalibrationBasis(azimuth: .trueNorth, altitude: .level))
+        #expect(relaunched.homeSaved != nil)
+        let summary = try #require(relaunched.homeSummary)
+        #expect(summary.contains("azimuth from true north, altitude from a level tube"), "\(summary)")
+
+        model.calibratePolaris()
+        try await Rig.waitUntil { model.calibrationBasis?.azimuth == .polaris }
+        #expect(model.calibrationBasis?.summary == "both axes from Polaris")
+        model.clearCalibration()
+        #expect(model.calibrationBasis == nil)
+        model.useHome()
+        #expect(model.calibrationBasis == CalibrationBasis(azimuth: .trueNorth, altitude: .level), "the home position's own")
+    }
+
     /// Calibrated, with Return to home set going toward a home 40° away, and its route planned (so steps are going out).
     private func driveHomeUnderWay() async throws -> Rig {
         let rig = try await Rig(home: AxisCalibration(azimuthOffset: -40, altitudeOffset: 0))
