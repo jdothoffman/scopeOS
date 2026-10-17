@@ -7,6 +7,11 @@ public enum TelescopeFinder {
     public struct Found: Hashable, Sendable {
         public let host: String
         public let port: UInt16
+
+        public init(host: String, port: UInt16) {
+            self.host = host
+            self.port = port
+        }
     }
 
     public static let defaultPort: UInt16 = 2000
