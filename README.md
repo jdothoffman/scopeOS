@@ -134,7 +134,7 @@ Click the moon in the header (or press ⇧⌘N) for a dim red-on-black display t
 
 | Option | How | What you get |
 |---|---|---|
-| **WiFi module** | Either join the scope's own WiFi (`SkyPortal-XXXX` / `Celestron-XX`; host `1.2.3.4`, port `2000`), or put the module on your home or Starlink network (SkyPortal app › Settings › Communication › Configure Access Point, then the module's switch to WLAN) and click **Find** to locate it. Close the SkyPortal app first; the module takes one connection at a time. | Motor axis angles, slewing state, device firmware, focuser position |
+| **WiFi module** | Either join the scope's own WiFi (`SkyPortal-XXXX` / `Celestron-XX`; host `1.2.3.4`, port `2000`), or put the module on your home or Starlink network (SkyPortal app › Settings › Communication › Configure Access Point, then the module's switch to WLAN) and scopeOS finds it: the Setup tab looks by itself while nothing is connected, and again every 15 s until it turns up (or click **Find**; **Cancel** stops it). Close the SkyPortal app first; the module takes one connection at a time. | Motor axis angles, slewing state, device firmware, focuser position |
 | **USB hand controller** | USB cable to the hand controller's port, pick the `/dev/cu.usbserial-…` port. | Full sky coordinates (RA/Dec), azimuth/altitude, alignment, tracking mode, distance from the Sun |
 | **Network / simulator** | Hand-controller protocol over TCP: SkyFi-style adapters, or the simulator below. | Same as USB |
 

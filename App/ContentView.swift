@@ -562,6 +562,12 @@ struct ConnectionPanel: View {
         }
         .padding(14)
         .panel()
+        // Looks for the telescope by itself while this shows the WiFi module and nothing is connected; leaving the
+        // Setup tab, connecting or picking another kind ends it.
+        .task(id: model.kind == .wifiModule && !model.isRunning) {
+            guard model.kind == .wifiModule, !model.isRunning else { return }
+            await model.keepFinding()
+        }
     }
 
     /// Fixed on the Mac; on a phone the host field gives way to the Find button and its progress.

@@ -83,6 +83,12 @@ final class MonitorModel {
     private var findTask: Task<Void, Never>?
     private(set) var foundTelescopes: [TelescopeFinder.Found] = []
     private(set) var findMessage: String?
+    /// The network search behind Find (tests use their own).
+    private let finder: @Sendable () async -> [TelescopeFinder.Found]
+    /// How long `keepFinding` waits after a search that found nothing before trying again.
+    var autoFindInterval: Duration = .seconds(15)
+    /// Set by Cancel, so `keepFinding` doesn't start the search again by itself.
+    private var autoFindStopped = false
 
     /// Deliberately not saved. Debug builds start with movement off and turn it off on disconnect; release builds
     /// hide the switches and turn movement on whenever a connection is made.
@@ -191,8 +197,10 @@ final class MonitorModel {
     /// `defaults` and `logFolder` are where settings and the traffic log are kept (tests use their own).
     init(location: LocationModel, defaults: UserDefaults = .standard, logFolder: URL = TrafficLogFile.folder,
          solarLogFile: URL = SolarLog.defaultFile,
-         simulatorPorts: (aux: UInt16, handController: UInt16) = (simulatorAuxPort, simulatorHandControllerPort)) {
+         simulatorPorts: (aux: UInt16, handController: UInt16) = (simulatorAuxPort, simulatorHandControllerPort),
+         finder: @escaping @Sendable () async -> [TelescopeFinder.Found] = { await TelescopeFinder.findOnLocalNetwork() }) {
         self.location = location
+        self.finder = finder
         solarLog = SolarLog(file: solarLogFile)
         self.simulatorPorts = simulatorPorts
         self.defaults = defaults
@@ -319,33 +327,59 @@ final class MonitorModel {
         task = Task { await run(settings) }
     }
 
-    /// Searches the local network for WiFi modules and fills in the first one found.
-    func findTelescope() {
+    /// Searches the local network for WiFi modules and fills in the first one found. An automatic search (from
+    /// `keepFinding`) leaves an address typed while it ran alone, and only logs what it finds, not every miss.
+    func findTelescope(automatic: Bool = false) {
         guard !finding, !isRunning else { return }
+        if !automatic { autoFindStopped = false }
         finding = true
         findStarted = .now
-        findMessage = "Searching this network…"
+        findMessage = automatic ? "Looking for the telescope on this network…" : "Searching this network…"
         foundTelescopes = []
+        let typedHost = wifiHost
         findTask = Task {
-            let found = await TelescopeFinder.findOnLocalNetwork()
+            let found = await finder()
             finding = false
             findTask = nil
             foundTelescopes = found
             if Task.isCancelled, found.isEmpty {
-                findMessage = "Search cancelled."
+                // Leaving the Setup tab ends an automatic search quietly; Cancel says so.
+                findMessage = automatic && !autoFindStopped ? nil : "Search cancelled."
             } else if let first = found.first {
-                useFoundTelescope(first)
-                findMessage = found.count == 1 ? "Found the telescope at \(first.host)." : "Found \(found.count) telescopes; using \(first.host)."
+                if automatic, wifiHost != typedHost {
+                    findMessage = "Found the telescope at \(first.host); kept the address you typed."
+                } else {
+                    useFoundTelescope(first)
+                    findMessage = found.count == 1 ? "Found the telescope at \(first.host)." : "Found \(found.count) telescopes; using \(first.host)."
+                }
             } else {
-                findMessage = "No telescope found on this network. Check the mount is on, its WiFi module has joined this network (light flashing slowly), and the SkyPortal app is closed."
+                findMessage = "No telescope found on this network\(automatic ? " yet; trying again every \(autoFindInterval.components.seconds) s" : ""). Check the mount is on, its WiFi module has joined this network (light flashing slowly), and the SkyPortal app is closed."
             }
-            append(TrafficEntry(.note, findMessage ?? ""))
+            if !automatic || !found.isEmpty { append(TrafficEntry(.note, findMessage ?? "")) }
         }
     }
 
-    /// Stops a search; it ends within a second, keeping anything already found.
+    /// Stops a search; it ends within a second, keeping anything already found. Also stops `keepFinding` from
+    /// starting another one, until the Setup tab is opened again.
     func cancelFind() {
+        autoFindStopped = true
         findTask?.cancel()
+    }
+
+    /// While the Setup tab shows the WiFi module and nothing is connected: searches, and again every
+    /// `autoFindInterval` until a telescope turns up. Ends when one is found, on Cancel, on Connect, when another
+    /// connection kind is picked, or when the calling task is cancelled (the tab is left), which stops a search under
+    /// way too. Doesn't search again if an earlier search already found one.
+    func keepFinding() async {
+        autoFindStopped = false
+        while !Task.isCancelled, !autoFindStopped, kind == .wifiModule, !isRunning, foundTelescopes.isEmpty {
+            if !finding { findTelescope(automatic: true) }
+            if let search = findTask {
+                await withTaskCancellationHandler { await search.value } onCancel: { search.cancel() }
+            }
+            guard foundTelescopes.isEmpty, !autoFindStopped else { return }
+            try? await Task.sleep(for: autoFindInterval)
+        }
     }
 
     func useFoundTelescope(_ telescope: TelescopeFinder.Found) {

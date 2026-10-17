@@ -486,3 +486,101 @@ extension MonitorModelTests.Rig {
         try await MonitorModelTests.waitUntil(timeout: timeout, condition, failure: failure)
     }
 }
+
+/// Setup's automatic search for the WiFi module, against a pretend network.
+@MainActor
+@Suite("Finding the telescope by itself")
+struct AutoFindTests {
+    /// Answers each search with the next of `answers` (then nothing), after `delay`; a cancelled search finds nothing.
+    actor FakeNetwork {
+        private var answers: [[TelescopeFinder.Found]]
+        private let delay: Duration
+        private(set) var searches = 0
+
+        init(_ answers: [[TelescopeFinder.Found]], delay: Duration = .milliseconds(20)) {
+            self.answers = answers
+            self.delay = delay
+        }
+
+        func search() async -> [TelescopeFinder.Found] {
+            searches += 1
+            try? await Task.sleep(for: delay)
+            if Task.isCancelled { return [] }
+            return answers.isEmpty ? [] : answers.removeFirst()
+        }
+    }
+
+    static let telescope = TelescopeFinder.Found(host: "192.168.0.185", port: 2000)
+
+    let suite = "ScopeOSTests-\(UUID().uuidString)"
+
+    func model(_ network: FakeNetwork) -> MonitorModel {
+        let defaults = UserDefaults(suiteName: suite)!
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
+        let model = MonitorModel(location: LocationModel(defaults: defaults), defaults: defaults, logFolder: folder,
+                                 solarLogFile: folder.appendingPathComponent("Solar filter confirmations.txt"),
+                                 finder: { await network.search() })
+        model.kind = .wifiModule
+        model.autoFindInterval = .milliseconds(30)
+        return model
+    }
+
+    @Test func itKeepsLookingUntilTheTelescopeTurnsUp() async throws {
+        let network = FakeNetwork([[], [], [Self.telescope]])
+        let model = model(network)
+        model.wifiHost = "1.2.3.4"
+        await model.keepFinding()
+        #expect(await network.searches == 3)
+        #expect(model.wifiHost == "192.168.0.185" && model.wifiPort == "2000")
+        #expect(model.findMessage == "Found the telescope at 192.168.0.185.")
+        #expect(!model.log.contains { $0.text.hasPrefix("No telescope found") }, "misses aren't logged")
+        #expect(model.log.contains { $0.text == "Found the telescope at 192.168.0.185." })
+
+        await model.keepFinding()
+        #expect(await network.searches == 3, "doesn't search again once one was found")
+    }
+
+    @Test func anAddressTypedDuringTheSearchIsKept() async throws {
+        let network = FakeNetwork([[Self.telescope]], delay: .milliseconds(200))
+        let model = model(network)
+        let finding = Task { await model.keepFinding() }
+        try await MonitorModelTests.waitUntil { model.finding }
+        model.wifiHost = "10.0.0.5"
+        await finding.value
+        #expect(model.wifiHost == "10.0.0.5")
+        #expect(model.findMessage == "Found the telescope at 192.168.0.185; kept the address you typed.")
+    }
+
+    @Test func cancelStopsItLookingAgain() async throws {
+        let network = FakeNetwork([], delay: .milliseconds(100))
+        let model = model(network)
+        let finding = Task { await model.keepFinding() }
+        try await MonitorModelTests.waitUntil { model.finding }
+        model.cancelFind()
+        await finding.value
+        #expect(model.findMessage == "Search cancelled.")
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(await network.searches == 1)
+        #expect(!model.finding)
+    }
+
+    @Test func leavingTheTabEndsTheSearchQuietly() async throws {
+        let network = FakeNetwork([], delay: .seconds(5))
+        let model = model(network)
+        let finding = Task { await model.keepFinding() }
+        try await MonitorModelTests.waitUntil { model.finding }
+        finding.cancel()
+        await finding.value
+        try await MonitorModelTests.waitUntil { !model.finding }
+        #expect(model.findMessage == nil)
+        #expect(await network.searches == 1)
+    }
+
+    @Test func itOnlyLooksForTheWiFiModule() async throws {
+        let network = FakeNetwork([[Self.telescope]])
+        let model = model(network)
+        model.kind = .networkHandController
+        await model.keepFinding()
+        #expect(await network.searches == 0)
+    }
+}
