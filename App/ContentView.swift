@@ -276,7 +276,7 @@ private struct TabBar: View {
         case .usbHandController: "USB · \(model.serialPath.isEmpty ? "no port" : model.serialPath)"
         case .networkHandController: "Network · \(model.networkHost):\(model.networkPort)"
         }
-        return model.isRunning ? target : "Not connected · \(target) · Setup (⌘3) to change"
+        return model.isRunning ? target : "Not connected · \(target) · Setup (⌘\(AppTab.setup.shortcut.character)) to change"
     }
 }
 
@@ -525,16 +525,18 @@ struct ConnectionPanel: View {
     @Environment(MonitorModel.self) private var model
     @Environment(\.layoutWidth) private var width
 
-    /// One row when there's room; else the connection kind, its settings and the simulator each on their own.
+    /// The connection kind (with the simulator beside it when there's room), then its settings on their own row: all
+    /// on one row they're wider than the Setup tab's main column at the window's minimum size (#43). The rows don't
+    /// depend on what fits, so the layout stays put while Find's progress comes and goes.
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if width == .wide {
                 HStack(spacing: 12) {
                     kindPicker
-                    settings
-                    Spacer()
+                    Spacer(minLength: 0)
                     simulatorButton
                 }
+                HStack(spacing: 12) { settings }
             } else {
                 kindPicker
                 HStack(spacing: 10) { settings }
