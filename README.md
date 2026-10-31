@@ -30,11 +30,24 @@ Nothing else can be sent.
 
 **Never point a telescope at the Sun without a proper solar filter covering the front of the telescope.** Looking at the Sun through a telescope, even for an instant, causes permanent eye damage, and it can destroy a camera. scopeOS's Sun lock is a safeguard, not a guarantee: over the WiFi module it relies on the mount's alignment, and it cannot see what you point the telescope at by other means. In Solar mode the Sun lock is off: scopeOS relies entirely on your confirmation that the filter is on, and it cannot check it.
 
-scopeOS moves real equipment. Stay with the telescope while it is connected, keep the area around it clear, and keep a hand near the power switch, especially the first time you use the movement controls. Many features have so far only been tested against the built-in simulator; see [NEXT_STEPS.md](NEXT_STEPS.md) for what has and hasn't been checked on hardware.
+scopeOS moves real equipment. Stay with the telescope while it is connected, keep the area around it clear, and keep a hand near the power switch, especially the first time you use the movement controls. scopeOS has been checked on one set of equipment (see [Tested on hardware](#tested-on-hardware)); other mounts, firmware and cameras may behave differently.
 
 scopeOS is an independent project and is not affiliated with, endorsed by, or supported by Celestron, SVBONY, or any other manufacturer. Product names are trademarks of their owners. The communication protocols are based on Celestron's published hand-controller protocol and on community documentation of the AUX bus; they may change with firmware updates.
 
 The software is provided "as is", without warranty of any kind, under the [MIT License](LICENSE). You use it at your own risk; the authors are not liable for any damage to equipment, eyesight or anything else.
+
+## Tested on hardware
+
+Checked on a NexStar 6SE with StarSense, the SkyPortal WiFi module, a Celestron focus motor and an SVBONY SV205, with the Mac, an iPhone and an iPad. [NEXT_STEPS.md](NEXT_STEPS.md) lists what each check found.
+
+| Area | Checked on hardware |
+|---|---|
+| **Mount over the WiFi module** | Directions, readings and crossing the motors' zero; Calibrate (level, north, Polaris) and the home position; holds, Fine steps and the 15 s limit; Stop, including mid-slew; slewing Go to and Return to home (from home, across azimuth zero, unwinding the cable); the mount tracking on after moves |
+| **Go to** | Polaris, bright stars, the Moon and planets; the Sun in Solar mode, with the filter checklist; the sky map against the real sky |
+| **Focus motor** | Calibrated range, step sizes, direction, the focus aid and Go to best on a real target |
+| **Camera (SV205)** | Preview, controls, recording to SER with notes, quitting mid-recording. Not yet: comparing the smaller modes' field of view |
+| **iPhone and iPad** | Find, holds by touch, leaving the app mid-move, the screen staying on, the STOP bar, the sky map, GPS without internet |
+| **USB hand controller, network adapters** | Not part of the checks: tested against the simulator only |
 
 ## Open and run
 
@@ -73,7 +86,7 @@ To try the layouts in the iOS Simulator without tapping through: debug builds ta
 
 ## Focus motor
 
-With a Celestron focus motor on the AUX bus and the WiFi connection, the Focus panel shows the focuser's position within its calibrated range and moves it with step buttons (10 to 1,000 steps) or press-and-hold (up to 5 seconds). Every move is a GoTo to a target inside the calibrated range, at most a fifth of the range away, so the focuser can't be driven into its end stops and stops on its own even if the connection drops. If the motor hasn't been calibrated (from the hand controller or SkyPortal), focusing stays locked. Stopping a focus move stops only the focuser; **Stop Telescope** stops everything.
+With a Celestron focus motor on the AUX bus and the WiFi connection, the Focus panel shows the focuser's position within its calibrated range and moves it with step buttons (10 to 1,000 steps) or press-and-hold (up to 5 seconds). Every move is a GoTo to a target inside the calibrated range, at most a fifth of the range away, so the focuser can't be driven into its end stops and stops on its own even if the connection drops. If the motor hasn't been calibrated (from the hand controller or SkyPortal), focusing stays locked. Stopping a focus move stops only the focuser; **Stop Telescope** stops everything. On the 6SE, **+** (higher position numbers) focuses out.
 
 ## Calibrating the WiFi readings
 
